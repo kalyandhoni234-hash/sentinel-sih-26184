@@ -1,0 +1,84 @@
+# SENTINEL Synthetic Data Generation Configuration
+# This file controls the behavior of the synthetic data generator.
+# All parameters are for synthetic data only.
+
+generation:
+  random_seed: 42
+  dataset_version: "0.1.0"
+  generator_version: "0.1.0"
+  schema_version: "0.1.0"
+  case_count: 80
+
+geography:
+  # Synthetic metro areas with approximate real coordinates
+  # These are NOT exact representations of Indian cities
+  metros:
+    - name: "Delhi NCR"
+      center_lat: 28.6139
+      center_lon: 77.2090
+      spread_km: 25
+      location_count: 10
+    - name: "Mumbai"
+      center_lat: 19.0760
+      center_lon: 72.8777
+      spread_km: 20
+      location_count: 10
+    - name: "Kolkata"
+      center_lat: 22.5726
+      center_lon: 88.3639
+      spread_km: 18
+      location_count: 8
+    - name: "Chennai"
+      center_lat: 13.0827
+      center_lon: 80.2707
+      spread_km: 18
+      location_count: 8
+    - name: "Jaipur"
+      center_lat: 26.9124
+      center_lon: 75.7873
+      spread_km: 15
+      location_count: 8
+
+  location_types:
+    - "ATM"
+    - "BANK_BRANCH"
+    - "MONEY_TRANSFER_AGENT"
+    - "SHOPPING_MALL"
+    - "MARKET"
+    - "TRANSPORT_HUB"
+    - "HOTEL"
+    - "CAFE"
+    - "RESIDENTIAL_AREA"
+    - "COMMERCIAL_COMPLEX"
+
+scenarios:
+  weights:
+    DIRECT_CASHOUT: 0.20
+    RAPID_MULE_CHAIN: 0.15
+    MULTI_HOP: 0.15
+    GEOGRAPHIC_JUMP: 0.15
+    DELAYED_CASHOUT: 0.10
+    URBAN_CLUSTER: 0.15
+    DISPERSED_ACTIVITY: 0.10
+
+transactions:
+  # Amount ranges in INR (synthetic)
+  min_amount: 2000
+  max_amount: 450000
+  # Hop count ranges per scenario
+  hop_counts:
+    DIRECT_CASHOUT: [1, 2]
+    RAPID_MULE_CHAIN: [3, 4]
+    MULTI_HOP: [4, 6]
+    GEOGRAPHIC_JUMP: [2, 4]
+    DELAYED_CASHOUT: [2, 3]
+    URBAN_CLUSTER: [2, 4]
+    DISPERSED_ACTIVITY: [3, 5]
+
+candidates:
+  min_per_case: 10
+  max_per_case: 18
+
+evaluation:
+  test_size: 0.2
+  random_seed: 42
