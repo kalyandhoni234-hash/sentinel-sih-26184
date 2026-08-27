@@ -108,6 +108,7 @@ pytest tests/test_leakage.py tests/test_audit_regression.py -v
 Or use the `LeakageChecker` programmatically:
 ```python
 from src.data_generation.leakage import LeakageChecker
+
 checker = LeakageChecker(cases, transactions, locations, candidates, ground_truths)
 violations = checker.check_all()
 if violations:

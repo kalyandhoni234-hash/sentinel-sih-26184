@@ -9,8 +9,8 @@ def test_every_case_has_candidates():
     """Verify every case has at least 5 candidates."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     cases_path = Path(result["output_dir"]) / "generated" / "cases.jsonl"
     cands_path = Path(result["output_dir"]) / "generated" / "candidates.jsonl"
@@ -29,17 +29,15 @@ def test_every_case_has_candidates():
 
     for cid in case_ids:
         assert cid in cand_counts, f"Case {cid} has no candidates"
-        assert cand_counts[cid] >= 5, (
-            f"Case {cid} has only {cand_counts[cid]} candidates (minimum 5)"
-        )
+        assert cand_counts[cid] >= 5, f"Case {cid} has only {cand_counts[cid]} candidates (minimum 5)"
 
 
 def test_candidates_reference_valid_locations():
     """Verify all candidates reference existing locations."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     locs_path = Path(result["output_dir"]) / "generated" / "locations.jsonl"
     cands_path = Path(result["output_dir"]) / "generated" / "candidates.jsonl"
@@ -52,17 +50,15 @@ def test_candidates_reference_valid_locations():
     with open(cands_path) as f:
         for line in f:
             c = json.loads(line)
-            assert c["location_id"] in location_ids, (
-                f"Candidate references non-existent location {c['location_id']}"
-            )
+            assert c["location_id"] in location_ids, f"Candidate references non-existent location {c['location_id']}"
 
 
 def test_candidate_features_are_in_range():
     """Verify all candidate feature values are in valid ranges."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     cands_path = Path(result["output_dir"]) / "generated" / "candidates.jsonl"
     with open(cands_path) as f:

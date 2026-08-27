@@ -10,7 +10,7 @@ must infer behavioral patterns from observable evidence.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from .schema import FraudScenario
@@ -23,6 +23,7 @@ class ScenarioBehavior:
     These control the synthetic generation process but must NOT
     be directly exposed as model features that leak the answer.
     """
+
     name: FraudScenario
     description: str
     # Transaction chain structure

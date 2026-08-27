@@ -19,8 +19,7 @@ from datetime import datetime
 from typing import Any
 
 from .locations import compute_distance_km
-from .schema import Case, Candidate, Location, Transaction
-
+from .schema import Case
 
 # ---------------------------------------------------------------------------
 # Feature record schema
@@ -423,6 +422,7 @@ METADATA_COLUMNS = ["case_id", "location_id", "is_true_location"]
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _parse_ts(ts_str: str | datetime) -> datetime:
     """Parse an ISO timestamp string, or pass through a datetime object."""
     if isinstance(ts_str, datetime):
@@ -452,6 +452,7 @@ def _inter_arrival_hours(sorted_timestamps: list[datetime]) -> list[float]:
 # Feature computation
 # ---------------------------------------------------------------------------
 
+
 def _compute_tx_features(
     case: Case,
     case_txs: list[dict],
@@ -468,10 +469,7 @@ def _compute_tx_features(
         Dictionary of transaction features.
     """
     # Filter to pre-complaint transactions only
-    pre_txs = [
-        tx for tx in case_txs
-        if _parse_ts(tx["timestamp"]) <= cutoff
-    ]
+    pre_txs = [tx for tx in case_txs if _parse_ts(tx["timestamp"]) <= cutoff]
     pre_txs_sorted = sorted(pre_txs, key=lambda t: t["sequence_number"])
 
     amounts = [tx["amount"] for tx in pre_txs]
@@ -508,10 +506,7 @@ def _compute_tx_features(
     velocity = _safe_div(tx_count, chain_duration)
 
     # Cross-metro transactions
-    cross_metro = sum(
-        1 for tx in pre_txs
-        if tx["sender_metro"] != tx["receiver_metro"]
-    )
+    cross_metro = sum(1 for tx in pre_txs if tx["sender_metro"] != tx["receiver_metro"])
 
     # Unique metros
     metros = set()
@@ -556,10 +551,7 @@ def _compute_temporal_features(
     Returns:
         Dictionary of temporal features.
     """
-    pre_txs = [
-        tx for tx in case_txs
-        if _parse_ts(tx["timestamp"]) <= cutoff
-    ]
+    pre_txs = [tx for tx in case_txs if _parse_ts(tx["timestamp"]) <= cutoff]
     pre_txs_sorted = sorted(pre_txs, key=lambda t: t["sequence_number"])
 
     # Complaint delay from last TX
@@ -616,8 +608,10 @@ def _compute_geographic_features(
 
     # Distance from origin
     dist_from_origin = compute_distance_km(
-        origin_loc["latitude"], origin_loc["longitude"],
-        cand_loc["latitude"], cand_loc["longitude"],
+        origin_loc["latitude"],
+        origin_loc["longitude"],
+        cand_loc["latitude"],
+        cand_loc["longitude"],
     )
 
     # Last transaction location
@@ -633,8 +627,10 @@ def _compute_geographic_features(
         # (we don't have exact TX coordinates, only metro)
         last_tx_loc = origin_loc  # best available proxy
         dist_from_last_tx = compute_distance_km(
-            last_tx_loc["latitude"], last_tx_loc["longitude"],
-            cand_loc["latitude"], cand_loc["longitude"],
+            last_tx_loc["latitude"],
+            last_tx_loc["longitude"],
+            cand_loc["latitude"],
+            cand_loc["longitude"],
         )
         same_metro_last_tx = 1 if cand_loc["metro"] == last_tx_metro else 0
     else:
@@ -656,8 +652,10 @@ def _compute_geographic_features(
 
     tx_dists = [
         compute_distance_km(
-            ep["latitude"], ep["longitude"],
-            cand_loc["latitude"], cand_loc["longitude"],
+            ep["latitude"],
+            ep["longitude"],
+            cand_loc["latitude"],
+            cand_loc["longitude"],
         )
         for ep in tx_endpoints
     ]
@@ -719,8 +717,12 @@ def _compute_case_features(case: Case) -> dict[str, Any]:
     These are static attributes of the case, known at query time.
     """
     scenarios = [
-        "DIRECT_CASHOUT", "RAPID_MULE_CHAIN", "MULTI_HOP",
-        "GEOGRAPHIC_JUMP", "DELAYED_CASHOUT", "URBAN_CLUSTER",
+        "DIRECT_CASHOUT",
+        "RAPID_MULE_CHAIN",
+        "MULTI_HOP",
+        "GEOGRAPHIC_JUMP",
+        "DELAYED_CASHOUT",
+        "URBAN_CLUSTER",
         "DISPERSED_ACTIVITY",
     ]
     features = {
@@ -736,6 +738,7 @@ def _compute_case_features(case: Case) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def build_candidate_features(
     case: Case,
@@ -797,7 +800,7 @@ def build_feature_matrix(
     """
     # Build lookup structures
     case_map = {c.case_id: c for c in cases}
-    loc_map = {l["location_id"]: l for l in locations}
+    loc_map = {loc["location_id"]: loc for loc in locations}
 
     # Group transactions by case
     tx_by_case: dict[str, list[dict]] = {}

@@ -43,6 +43,7 @@ def _load_eval(output_dir: str, filename: str) -> list[dict]:
 # AUDIT REGRESSION: Scenario description must not leak in metadata
 # ---------------------------------------------------------------------------
 
+
 def test_metadata_does_not_contain_scenario_description():
     """Case.metadata must not contain scenario_behavior text.
 
@@ -63,6 +64,7 @@ def test_metadata_does_not_contain_scenario_description():
 # ---------------------------------------------------------------------------
 # AUDIT REGRESSION: Candidate feature distributions
 # ---------------------------------------------------------------------------
+
 
 def test_transaction_proximity_is_not_constant():
     """transaction_proximity_score should have variation across candidates.
@@ -92,10 +94,7 @@ def test_temporal_plausibility_has_variation():
     scores = set(c["temporal_plausibility"] for c in cands)
     # Currently only has 2 values — document this as a known limitation
     # This test ensures we notice if it degrades to 1 value
-    assert len(scores) >= 2, (
-        f"temporal_plausibility has only {len(scores)} unique values; "
-        f"expected at least 2"
-    )
+    assert len(scores) >= 2, f"temporal_plausibility has only {len(scores)} unique values; expected at least 2"
 
 
 def test_true_location_not_always_nearest():
@@ -135,16 +134,13 @@ def test_candidate_set_contains_hard_negatives_from_different_metros():
     """
     result = generate_dataset(seed=42)
     cands = _load_generated(result["output_dir"], "candidates.jsonl")
-    cases = _load_generated(result["output_dir"], "cases.jsonl")
     locs = _load_generated(result["output_dir"], "locations.jsonl")
 
-    case_map = {c["case_id"]: c for c in cases}
-    loc_map = {l["location_id"]: l for l in locs}
+    loc_map = {loc["location_id"]: loc for loc in locs}
 
     cross_metro_cases = 0
     total = 0
     for case_id in set(c["case_id"] for c in cands):
-        case = case_map[case_id]
         case_cands = [c for c in cands if c["case_id"] == case_id]
         metros = {loc_map[c["location_id"]]["metro"] for c in case_cands}
         if len(metros) > 1:
@@ -168,9 +164,9 @@ def test_scenario_field_exists_on_case():
     This test documents the decision and prevents accidental removal.
     """
     from src.data_generation.schema import Case
+
     assert "fraud_scenario" in Case.model_fields, (
-        "fraud_scenario must be a field on Case — it is an input feature, "
-        "not a derived quantity"
+        "fraud_scenario must be a field on Case — it is an input feature, not a derived quantity"
     )
 
 
@@ -180,9 +176,7 @@ def test_is_true_location_stripped_from_model_visible_output():
     cands = _load_generated(result["output_dir"], "candidates.jsonl")
 
     for c in cands:
-        assert "is_true_location" not in c, (
-            "Model-visible candidate contains is_true_location field"
-        )
+        assert "is_true_location" not in c, "Model-visible candidate contains is_true_location field"
 
 
 def test_no_duplicate_candidate_pairs():
@@ -196,6 +190,7 @@ def test_no_duplicate_candidate_pairs():
 
     pairs = [(c["case_id"], c["location_id"]) for c in cands]
     from collections import Counter
+
     pair_counts = Counter(pairs)
     dupes = {k: v for k, v in pair_counts.items() if v > 1}
     assert len(dupes) == 0, f"Duplicate candidate pairs found: {dupes}"
@@ -214,6 +209,4 @@ def test_true_positive_count_equals_case_count():
     gt_map = {g["case_id"]: g["actual_cashout_location_id"] for g in gts}
     tp_count = sum(1 for c in cands if gt_map.get(c["case_id"]) == c["location_id"])
 
-    assert tp_count == len(gts), (
-        f"TP count ({tp_count}) != case count ({len(gts)})"
-    )
+    assert tp_count == len(gts), f"TP count ({tp_count}) != case count ({len(gts)})"

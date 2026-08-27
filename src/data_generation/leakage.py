@@ -12,8 +12,8 @@ from __future__ import annotations
 import logging
 
 from .schema import (
-    Case,
     Candidate,
+    Case,
     GroundTruth,
     Location,
     Transaction,
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class LeakageError(Exception):
     """Raised when data leakage is detected."""
+
     pass
 
 
@@ -89,9 +90,7 @@ class LeakageChecker:
         # This is correct — we verify no scenario field exists on Candidate.
         sample_candidate_fields = set(Candidate.model_fields.keys())
         if "fraud_scenario" in sample_candidate_fields:
-            self.violations.append(
-                "LEAKAGE: Candidate model contains fraud_scenario field"
-            )
+            self.violations.append("LEAKAGE: Candidate model contains fraud_scenario field")
 
     def _check_candidate_columns_safe(self) -> None:
         """Verify candidate features don't contain forbidden columns.
@@ -108,9 +107,7 @@ class LeakageChecker:
         candidate_fields = set(Candidate.model_fields.keys())
         other_forbidden = candidate_fields & self.FORBIDDEN_COLUMNS - {"is_true_location"}
         if other_forbidden:
-            self.violations.append(
-                f"LEAKAGE: Candidate contains forbidden fields: {other_forbidden}"
-            )
+            self.violations.append(f"LEAKAGE: Candidate contains forbidden fields: {other_forbidden}")
 
     def _check_no_target_derived_distance(self) -> None:
         """Verify no distance-to-target features exist.
@@ -119,14 +116,9 @@ class LeakageChecker:
         NOT relative to the true cash-out location.
         """
         candidate_fields = set(Candidate.model_fields.keys())
-        target_distance_fields = {
-            f for f in candidate_fields
-            if "target" in f.lower() and "distance" in f.lower()
-        }
+        target_distance_fields = {f for f in candidate_fields if "target" in f.lower() and "distance" in f.lower()}
         if target_distance_fields:
-            self.violations.append(
-                f"LEAKAGE: Target-derived distance fields found: {target_distance_fields}"
-            )
+            self.violations.append(f"LEAKAGE: Target-derived distance fields found: {target_distance_fields}")
 
     def _check_no_post_cashout_transactions(self) -> None:
         """Verify no transactions are timestamped after the cash-out time."""
@@ -148,13 +140,10 @@ class LeakageChecker:
         # Check that Candidate doesn't have scenario-specific fields
         candidate_field_names = list(Candidate.model_fields.keys())
         scenario_leak_fields = [
-            f for f in candidate_field_names
-            if "scenario" in f.lower() and f != "scenario_affinity"
+            f for f in candidate_field_names if "scenario" in f.lower() and f != "scenario_affinity"
         ]
         if scenario_leak_fields:
-            self.violations.append(
-                f"LEAKAGE: Scenario-leaking fields in Candidate: {scenario_leak_fields}"
-            )
+            self.violations.append(f"LEAKAGE: Scenario-leaking fields in Candidate: {scenario_leak_fields}")
 
     def get_summary(self) -> dict:
         """Return a summary of leakage check results."""

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -85,20 +84,23 @@ def generate_report(seed: int = 42) -> None:
 
     # Convert to schema objects
     from datetime import datetime
+
     from src.data_generation.schema import Case, FraudScenario
 
     case_objects = []
     for c in cases:
-        case_objects.append(Case(
-            case_id=c["case_id"],
-            complaint_time=datetime.fromisoformat(c["complaint_time"]),
-            fraud_scenario=FraudScenario(c["fraud_scenario"]),
-            reported_amount=c["reported_amount"],
-            origin_metro=c["origin_metro"],
-            origin_location_id=c["origin_location_id"],
-            num_accounts_involved=c["num_accounts_involved"],
-            num_transactions=c["num_transactions"],
-        ))
+        case_objects.append(
+            Case(
+                case_id=c["case_id"],
+                complaint_time=datetime.fromisoformat(c["complaint_time"]),
+                fraud_scenario=FraudScenario(c["fraud_scenario"]),
+                reported_amount=c["reported_amount"],
+                origin_metro=c["origin_metro"],
+                origin_location_id=c["origin_location_id"],
+                num_accounts_involved=c["num_accounts_involved"],
+                num_transactions=c["num_transactions"],
+            )
+        )
 
     # Build feature matrix
     matrix = build_feature_matrix(
@@ -134,10 +136,7 @@ def generate_report(seed: int = 42) -> None:
         max_val = stats.get("max", "-")
 
         missing_str = f"{missing}" if missing > 0 else "0"
-        print(
-            f"{fname:<45} {dtype:<8} {str(unique):<8} {missing_str:<8} "
-            f"{str(min_val):<10} {str(max_val):<10}"
-        )
+        print(f"{fname:<45} {dtype:<8} {str(unique):<8} {missing_str:<8} {str(min_val):<10} {str(max_val):<10}")
 
     # Leakage status summary
     print("\n" + "-" * 70)

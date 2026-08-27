@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import random
 from datetime import timedelta
-from typing import Any
 
+from .scenarios import ScenarioBehavior, get_scenario_behavior
 from .schema import (
     Account,
     AccountRole,
@@ -17,13 +17,14 @@ from .schema import (
     Transaction,
     TransactionType,
 )
-from .scenarios import ScenarioBehavior, get_scenario_behavior
-
 
 _TRANSACTION_TYPES = list(TransactionType)
 _BANK_NAMES = [
-    "SYNTH_BANK_A", "SYNTH_BANK_B", "SYNTH_BANK_C",
-    "SYNTH_BANK_D", "SYNTH_BANK_E",
+    "SYNTH_BANK_A",
+    "SYNTH_BANK_B",
+    "SYNTH_BANK_C",
+    "SYNTH_BANK_D",
+    "SYNTH_BANK_E",
 ]
 
 
@@ -101,9 +102,7 @@ def generate_transaction_chain(
     num_hops = rng.randint(scenario_behavior.min_hops, scenario_behavior.max_hops)
 
     # Ensure we have enough accounts (should always be true now)
-    assert len(accounts) >= num_hops + 1, (
-        f"Need {num_hops + 1} accounts but only have {len(accounts)}"
-    )
+    assert len(accounts) >= num_hops + 1, f"Need {num_hops + 1} accounts but only have {len(accounts)}"
 
     # Start time: some time before complaint
     chain_duration_hours = rng.uniform(
@@ -153,18 +152,20 @@ def generate_transaction_chain(
         sender_metro = account_metros[i] if i < len(account_metros) else origin_metro
         receiver_metro = account_metros[i + 1] if i + 1 < len(account_metros) else origin_metro
 
-        transactions.append(Transaction(
-            transaction_id=f"TX_{case.case_id}_{i + 1:03d}",
-            case_id=case.case_id,
-            sender_account_id=sender.account_id,
-            receiver_account_id=receiver.account_id,
-            timestamp=tx_time,
-            amount=round(current_amount, 2),
-            transaction_type=tx_type,
-            sequence_number=i + 1,
-            sender_metro=sender_metro,
-            receiver_metro=receiver_metro,
-        ))
+        transactions.append(
+            Transaction(
+                transaction_id=f"TX_{case.case_id}_{i + 1:03d}",
+                case_id=case.case_id,
+                sender_account_id=sender.account_id,
+                receiver_account_id=receiver.account_id,
+                timestamp=tx_time,
+                amount=round(current_amount, 2),
+                transaction_type=tx_type,
+                sequence_number=i + 1,
+                sender_metro=sender_metro,
+                receiver_metro=receiver_metro,
+            )
+        )
         prev_tx_time = tx_time
 
     return transactions

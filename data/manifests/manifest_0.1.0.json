@@ -4,17 +4,17 @@
   "schema_version": "0.1.0",
   "random_seed": 42,
   "case_count": 80,
-  "generation_timestamp": "2026-08-28T02:10:31.601670",
-  "total_transactions": 254,
+  "generation_timestamp": "2026-08-28T02:21:49.807256",
+  "total_transactions": 261,
   "total_locations": 44,
-  "total_candidates": 1060,
+  "total_candidates": 1137,
   "scenario_distribution": {
-    "RAPID_MULE_CHAIN": 20,
-    "DISPERSED_ACTIVITY": 7,
-    "DIRECT_CASHOUT": 10,
-    "URBAN_CLUSTER": 10,
-    "DELAYED_CASHOUT": 13,
-    "MULTI_HOP": 10,
-    "GEOGRAPHIC_JUMP": 10
+    "RAPID_MULE_CHAIN": 19,
+    "DISPERSED_ACTIVITY": 10,
+    "DIRECT_CASHOUT": 11,
+    "URBAN_CLUSTER": 8,
+    "DELAYED_CASHOUT": 10,
+    "MULTI_HOP": 11,
+    "GEOGRAPHIC_JUMP": 11
   }
 }

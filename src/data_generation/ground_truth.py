@@ -17,11 +17,10 @@ from __future__ import annotations
 
 import random
 from datetime import timedelta
-from typing import Any
 
 from .locations import compute_distance_km
 from .scenarios import ScenarioBehavior, get_scenario_behavior
-from .schema import Case, GroundTruth, Location, FraudScenario
+from .schema import Case, GroundTruth, Location
 
 
 def _compute_location_weights(
@@ -51,8 +50,10 @@ def _compute_location_weights(
         # Factor 1: Geographic proximity to origin
         if origin_loc:
             dist = compute_distance_km(
-                origin_loc.latitude, origin_loc.longitude,
-                loc.latitude, loc.longitude,
+                origin_loc.latitude,
+                origin_loc.longitude,
+                loc.latitude,
+                loc.longitude,
             )
             # Closer locations get higher weight (exponential decay)
             proximity_factor = max(0.05, 1.0 - (dist / 100.0))
@@ -60,18 +61,18 @@ def _compute_location_weights(
 
         # Factor 2: Metro matching
         if loc.metro == case.origin_metro:
-            weight *= (1.0 + scenario_behavior.metro_affinity_boost)
+            weight *= 1.0 + scenario_behavior.metro_affinity_boost
         elif loc.metro == last_tx_metro:
-            weight *= (1.0 + scenario_behavior.metro_affinity_boost * 0.7)
+            weight *= 1.0 + scenario_behavior.metro_affinity_boost * 0.7
         else:
             weight *= 0.6  # Penalty for unrelated metro
 
         # Factor 3: Cross-metro boost for scenarios that jump
         if scenario_behavior.allow_cross_metro and loc.metro != case.origin_metro:
-            weight *= (1.0 + scenario_behavior.preferred_metro_spread * 0.5)
+            weight *= 1.0 + scenario_behavior.preferred_metro_spread * 0.5
 
         # Factor 4: Location attractiveness
-        weight *= (0.5 + loc.cash_out_attractiveness)
+        weight *= 0.5 + loc.cash_out_attractiveness
 
         # Factor 5: Location type suitability
         if loc.location_type.value in ("ATM", "BANK_BRANCH", "MONEY_TRANSFER_AGENT"):
@@ -86,7 +87,7 @@ def _compute_location_weights(
             weight *= 0.75
 
         # Factor 7: Density bonus
-        weight *= (0.6 + loc.density_score * 0.4)
+        weight *= 0.6 + loc.density_score * 0.4
 
         # Factor 8: Amount plausibility
         # Larger amounts more likely at bank branches/ATMs
@@ -155,9 +156,7 @@ def generate_ground_truth(
         last_tx_metro = case.origin_metro
 
     # Compute weighted probabilities
-    weighted_locations = _compute_location_weights(
-        case, locations, behavior, last_tx_metro, rng
-    )
+    weighted_locations = _compute_location_weights(case, locations, behavior, last_tx_metro, rng)
 
     # Sample the true location
     selected_loc, selection_prob = _sample_from_weights(weighted_locations, rng)

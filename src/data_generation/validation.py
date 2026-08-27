@@ -10,8 +10,8 @@ from datetime import datetime
 
 from .schema import (
     Account,
-    Case,
     Candidate,
+    Case,
     DatasetManifest,
     GroundTruth,
     Location,
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class ValidationError(Exception):
     """Raised when data validation fails."""
+
     pass
 
 
@@ -100,7 +101,7 @@ class DataValidator:
         if len(tx_ids) != len(set(tx_ids)):
             self.errors.append("Duplicate transaction IDs found")
 
-        loc_ids = [l.location_id for l in self.locations]
+        loc_ids = [loc.location_id for loc in self.locations]
         if len(loc_ids) != len(set(loc_ids)):
             self.errors.append("Duplicate location IDs found")
 
@@ -131,63 +132,43 @@ class DataValidator:
         """Verify all coordinates are valid."""
         for loc in self.locations:
             if not (-90 <= loc.latitude <= 90):
-                self.errors.append(
-                    f"Location {loc.location_id}: latitude {loc.latitude} out of range"
-                )
+                self.errors.append(f"Location {loc.location_id}: latitude {loc.latitude} out of range")
             if not (-180 <= loc.longitude <= 180):
-                self.errors.append(
-                    f"Location {loc.location_id}: longitude {loc.longitude} out of range"
-                )
+                self.errors.append(f"Location {loc.location_id}: longitude {loc.longitude} out of range")
 
     def _check_foreign_keys(self) -> None:
         """Verify referential integrity."""
         case_ids = {c.case_id for c in self.cases}
-        location_ids = {l.location_id for l in self.locations}
+        location_ids = {loc.location_id for loc in self.locations}
 
         # Accounts reference valid cases
         for acct in self.accounts:
             if acct.case_id not in case_ids:
-                self.errors.append(
-                    f"Account {acct.account_id} references non-existent case {acct.case_id}"
-                )
+                self.errors.append(f"Account {acct.account_id} references non-existent case {acct.case_id}")
 
         # Transactions reference valid cases and accounts
         account_ids = {a.account_id for a in self.accounts}
         for tx in self.transactions:
             if tx.case_id not in case_ids:
-                self.errors.append(
-                    f"Transaction {tx.transaction_id} references non-existent case {tx.case_id}"
-                )
+                self.errors.append(f"Transaction {tx.transaction_id} references non-existent case {tx.case_id}")
             if tx.sender_account_id not in account_ids:
-                self.errors.append(
-                    f"Transaction {tx.transaction_id} references non-existent sender account"
-                )
+                self.errors.append(f"Transaction {tx.transaction_id} references non-existent sender account")
             if tx.receiver_account_id not in account_ids:
-                self.errors.append(
-                    f"Transaction {tx.transaction_id} references non-existent receiver account"
-                )
+                self.errors.append(f"Transaction {tx.transaction_id} references non-existent receiver account")
 
         # Candidates reference valid cases and locations
         for cand in self.candidates:
             if cand.case_id not in case_ids:
-                self.errors.append(
-                    f"Candidate references non-existent case {cand.case_id}"
-                )
+                self.errors.append(f"Candidate references non-existent case {cand.case_id}")
             if cand.location_id not in location_ids:
-                self.errors.append(
-                    f"Candidate references non-existent location {cand.location_id}"
-                )
+                self.errors.append(f"Candidate references non-existent location {cand.location_id}")
 
         # Ground truths reference valid cases and locations
         for gt in self.ground_truths:
             if gt.case_id not in case_ids:
-                self.errors.append(
-                    f"Ground truth references non-existent case {gt.case_id}"
-                )
+                self.errors.append(f"Ground truth references non-existent case {gt.case_id}")
             if gt.actual_cashout_location_id not in location_ids:
-                self.errors.append(
-                    f"Ground truth references non-existent location {gt.actual_cashout_location_id}"
-                )
+                self.errors.append(f"Ground truth references non-existent location {gt.actual_cashout_location_id}")
 
     def _check_missing_values(self) -> None:
         """Check for missing required values."""
@@ -206,9 +187,7 @@ class DataValidator:
         for case in self.cases:
             count = case_candidate_counts.get(case.case_id, 0)
             if count < 5:
-                self.errors.append(
-                    f"Case {case.case_id}: only {count} candidates (minimum 5 required)"
-                )
+                self.errors.append(f"Case {case.case_id}: only {count} candidates (minimum 5 required)")
 
     def _check_ground_truth_coverage(self) -> None:
         """Verify every case has a ground truth."""
@@ -221,30 +200,24 @@ class DataValidator:
         """Verify the true location is present in the candidate set."""
         for gt in self.ground_truths:
             matching_candidates = [
-                c for c in self.candidates
-                if c.case_id == gt.case_id and c.location_id == gt.actual_cashout_location_id
+                c for c in self.candidates if c.case_id == gt.case_id and c.location_id == gt.actual_cashout_location_id
             ]
             if not matching_candidates:
                 self.errors.append(
-                    f"Case {gt.case_id}: true location {gt.actual_cashout_location_id} "
-                    f"not in candidate set"
+                    f"Case {gt.case_id}: true location {gt.actual_cashout_location_id} not in candidate set"
                 )
 
     def _check_manifest_consistency(self) -> None:
         """Verify manifest counts match actual data."""
         if self.manifest.case_count != len(self.cases):
-            self.errors.append(
-                f"Manifest case_count {self.manifest.case_count} != actual {len(self.cases)}"
-            )
+            self.errors.append(f"Manifest case_count {self.manifest.case_count} != actual {len(self.cases)}")
         if self.manifest.total_transactions != len(self.transactions):
             self.errors.append(
-                f"Manifest total_transactions {self.manifest.total_transactions} "
-                f"!= actual {len(self.transactions)}"
+                f"Manifest total_transactions {self.manifest.total_transactions} != actual {len(self.transactions)}"
             )
         if self.manifest.total_locations != len(self.locations):
             self.errors.append(
-                f"Manifest total_locations {self.manifest.total_locations} "
-                f"!= actual {len(self.locations)}"
+                f"Manifest total_locations {self.manifest.total_locations} != actual {len(self.locations)}"
             )
 
     def get_summary(self) -> dict:

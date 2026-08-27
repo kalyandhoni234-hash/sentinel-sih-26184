@@ -10,8 +10,8 @@ def test_no_leakage_in_generated_data():
     """Run the full leakage checker on generated data."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     base = Path(result["output_dir"])
 
@@ -46,76 +46,93 @@ def test_no_leakage_in_generated_data():
             ground_truths.append(json.loads(line))
 
     # Convert to Pydantic models for the checker
-    from src.data_generation.schema import (
-        Account, Case, Candidate, GroundTruth, Location, Transaction,
-        FraudScenario, AccountRole, TransactionType, LocationType,
-    )
     from datetime import datetime
+
+    from src.data_generation.schema import (
+        Candidate,
+        Case,
+        FraudScenario,
+        GroundTruth,
+        Location,
+        LocationType,
+        Transaction,
+        TransactionType,
+    )
 
     case_models = []
     for c in cases:
-        case_models.append(Case(
-            case_id=c["case_id"],
-            complaint_time=datetime.fromisoformat(c["complaint_time"].replace("Z", "+00:00")),
-            fraud_scenario=FraudScenario(c["fraud_scenario"]),
-            reported_amount=c["reported_amount"],
-            origin_metro=c["origin_metro"],
-            origin_location_id=c["origin_location_id"],
-            num_accounts_involved=c["num_accounts_involved"],
-            num_transactions=c["num_transactions"],
-        ))
+        case_models.append(
+            Case(
+                case_id=c["case_id"],
+                complaint_time=datetime.fromisoformat(c["complaint_time"].replace("Z", "+00:00")),
+                fraud_scenario=FraudScenario(c["fraud_scenario"]),
+                reported_amount=c["reported_amount"],
+                origin_metro=c["origin_metro"],
+                origin_location_id=c["origin_location_id"],
+                num_accounts_involved=c["num_accounts_involved"],
+                num_transactions=c["num_transactions"],
+            )
+        )
 
     tx_models = []
     for t in transactions:
-        tx_models.append(Transaction(
-            transaction_id=t["transaction_id"],
-            case_id=t["case_id"],
-            sender_account_id=t["sender_account_id"],
-            receiver_account_id=t["receiver_account_id"],
-            timestamp=datetime.fromisoformat(t["timestamp"].replace("Z", "+00:00")),
-            amount=t["amount"],
-            transaction_type=TransactionType(t["transaction_type"]),
-            sequence_number=t["sequence_number"],
-            sender_metro=t.get("sender_metro", ""),
-            receiver_metro=t.get("receiver_metro", ""),
-        ))
+        tx_models.append(
+            Transaction(
+                transaction_id=t["transaction_id"],
+                case_id=t["case_id"],
+                sender_account_id=t["sender_account_id"],
+                receiver_account_id=t["receiver_account_id"],
+                timestamp=datetime.fromisoformat(t["timestamp"].replace("Z", "+00:00")),
+                amount=t["amount"],
+                transaction_type=TransactionType(t["transaction_type"]),
+                sequence_number=t["sequence_number"],
+                sender_metro=t.get("sender_metro", ""),
+                receiver_metro=t.get("receiver_metro", ""),
+            )
+        )
 
     loc_models = []
-    for l in locations:
-        loc_models.append(Location(
-            location_id=l["location_id"],
-            latitude=l["latitude"],
-            longitude=l["longitude"],
-            metro=l["metro"],
-            region=l["region"],
-            location_type=LocationType(l["location_type"]),
-            density_score=l["density_score"],
-            cash_out_attractiveness=l["cash_out_attractiveness"],
-            is_high_surveillance=l.get("is_high_surveillance", False),
-        ))
+    for loc in locations:
+        loc_models.append(
+            Location(
+                location_id=loc["location_id"],
+                latitude=loc["latitude"],
+                longitude=loc["longitude"],
+                metro=loc["metro"],
+                region=loc["region"],
+                location_type=LocationType(loc["location_type"]),
+                density_score=loc["density_score"],
+                cash_out_attractiveness=loc["cash_out_attractiveness"],
+                is_high_surveillance=loc.get("is_high_surveillance", False),
+            )
+        )
 
     cand_models = []
     for c in candidates:
-        cand_models.append(Candidate(
-            case_id=c["case_id"],
-            location_id=c["location_id"],
-            distance_from_origin_km=c["distance_from_origin_km"],
-            scenario_affinity=c["scenario_affinity"],
-            transaction_proximity_score=c["transaction_proximity_score"],
-            temporal_plausibility=c["temporal_plausibility"],
-            density_score=c["density_score"],
-        ))
+        cand_models.append(
+            Candidate(
+                case_id=c["case_id"],
+                location_id=c["location_id"],
+                distance_from_origin_km=c["distance_from_origin_km"],
+                scenario_affinity=c["scenario_affinity"],
+                transaction_proximity_score=c["transaction_proximity_score"],
+                temporal_plausibility=c["temporal_plausibility"],
+                density_score=c["density_score"],
+            )
+        )
 
     gt_models = []
     for g in ground_truths:
-        gt_models.append(GroundTruth(
-            case_id=g["case_id"],
-            actual_cashout_location_id=g["actual_cashout_location_id"],
-            cashout_time=datetime.fromisoformat(g["cashout_time"].replace("Z", "+00:00")),
-            cashout_metro=g["cashout_metro"],
-            scenario_used=FraudScenario(g["scenario_used"]),
-            selection_probability=g["selection_probability"],
-        ))
+        gt_models.append(
+            GroundTruth(
+                case_id=g["case_id"],
+                actual_cashout_location_id=g["actual_cashout_location_id"],
+                cashout_time=datetime.fromisoformat(g["cashout_time"].replace("Z", "+00:00")),
+                cashout_metro=g["cashout_metro"],
+                scenario_used=FraudScenario(g["scenario_used"]),
+                selection_probability=g["selection_probability"],
+            )
+        )
 
     checker = LeakageChecker(
         cases=case_models,
@@ -133,16 +150,14 @@ def test_candidate_does_not_contain_is_true_location():
     """Verify model-visible candidates don't have is_true_location."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     cands_path = Path(result["output_dir"]) / "generated" / "candidates.jsonl"
     with open(cands_path) as f:
         for line in f:
             c = json.loads(line)
-            assert "is_true_location" not in c, (
-                "Model-visible candidate contains is_true_location field"
-            )
+            assert "is_true_location" not in c, "Model-visible candidate contains is_true_location field"
 
 
 def test_ground_truth_only_in_evaluation_dir():
@@ -160,6 +175,4 @@ def test_ground_truth_only_in_evaluation_dir():
 
     # Generated dir should NOT have ground truth
     gen_gt_files = list(gen_dir.glob("*ground_truth*"))
-    assert len(gen_gt_files) == 0, (
-        "Ground truth file found in generated directory (should only be in evaluation)"
-    )
+    assert len(gen_gt_files) == 0, "Ground truth file found in generated directory (should only be in evaluation)"

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from src.data_generation.generator import generate_dataset
 
 
@@ -11,8 +9,8 @@ def test_complaint_times_are_valid():
     """Verify all complaint times are valid datetime objects."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     cases_path = Path(result["output_dir"]) / "generated" / "cases.jsonl"
     with open(cases_path) as f:
@@ -30,8 +28,8 @@ def test_transaction_times_after_complaint_not_required():
     """
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     tx_path = Path(result["output_dir"]) / "generated" / "transactions.jsonl"
     with open(tx_path) as f:
@@ -45,8 +43,8 @@ def test_ground_truth_cashout_times_are_valid():
     """Verify ground truth cash-out times are valid."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     gt_path = Path(result["output_dir"]) / "evaluation" / "ground_truth.jsonl"
     with open(gt_path) as f:

@@ -7,7 +7,6 @@ from typing import Any
 
 import yaml
 
-
 _DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent / "configs" / "default.yaml"
 
 

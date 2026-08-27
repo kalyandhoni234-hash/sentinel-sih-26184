@@ -10,8 +10,8 @@ def test_transaction_chains_are_ordered():
     result = generate_dataset(seed=42)
 
     # Load generated transactions
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     tx_path = Path(result["output_dir"]) / "generated" / "transactions.jsonl"
     transactions = []
@@ -28,17 +28,15 @@ def test_transaction_chains_are_ordered():
     for cid, txs in case_txs.items():
         sorted_txs = sorted(txs, key=lambda t: t["sequence_number"])
         for i, tx in enumerate(sorted_txs):
-            assert tx["sequence_number"] == i + 1, (
-                f"Case {cid}: transaction sequence gap at position {i + 1}"
-            )
+            assert tx["sequence_number"] == i + 1, f"Case {cid}: transaction sequence gap at position {i + 1}"
 
 
 def test_transaction_chains_have_progressive_timing():
     """Verify transaction timestamps progress forward within each chain."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     tx_path = Path(result["output_dir"]) / "generated" / "transactions.jsonl"
     transactions = []
@@ -56,17 +54,15 @@ def test_transaction_chains_have_progressive_timing():
         for i in range(1, len(sorted_txs)):
             prev_time = sorted_txs[i - 1]["timestamp"]
             curr_time = sorted_txs[i]["timestamp"]
-            assert curr_time >= prev_time, (
-                f"Case {cid}: transaction {i + 1} timestamp before transaction {i}"
-            )
+            assert curr_time >= prev_time, f"Case {cid}: transaction {i + 1} timestamp before transaction {i}"
 
 
 def test_transaction_amounts_are_positive():
     """Verify all transaction amounts are positive."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     tx_path = Path(result["output_dir"]) / "generated" / "transactions.jsonl"
     with open(tx_path) as f:
@@ -79,8 +75,8 @@ def test_each_case_has_transactions():
     """Verify every case has at least one transaction."""
     result = generate_dataset(seed=42)
 
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     cases_path = Path(result["output_dir"]) / "generated" / "cases.jsonl"
     tx_path = Path(result["output_dir"]) / "generated" / "transactions.jsonl"
@@ -95,6 +91,4 @@ def test_each_case_has_transactions():
         for line in f:
             tx_case_ids.add(json.loads(line)["case_id"])
 
-    assert case_ids == tx_case_ids, (
-        f"Cases without transactions: {case_ids - tx_case_ids}"
-    )
+    assert case_ids == tx_case_ids, f"Cases without transactions: {case_ids - tx_case_ids}"

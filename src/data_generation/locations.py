@@ -12,7 +12,6 @@ from typing import Any
 
 from .schema import Location, LocationType
 
-
 # Deterministic offset patterns for generating sub-locations within a metro.
 # These create realistic-ish spreads without claiming to be exact city maps.
 _OFFSET_PATTERNS = [
@@ -29,8 +28,16 @@ _OFFSET_PATTERNS = [
 ]
 
 _REGION_NAMES = [
-    "North", "South", "East", "West", "Central",
-    "North-East", "South-West", "Industrial", "Financial", "Old Quarter",
+    "North",
+    "South",
+    "East",
+    "West",
+    "Central",
+    "North-East",
+    "South-West",
+    "Industrial",
+    "Financial",
+    "Old Quarter",
 ]
 
 _LOCATION_TYPE_CYCLE = list(LocationType)
@@ -41,12 +48,7 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1))
-        * math.cos(math.radians(lat2))
-        * math.sin(dlon / 2) ** 2
-    )
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
@@ -95,23 +97,29 @@ def generate_locations(
             else:
                 base_attractiveness = rng.uniform(0.1, 0.5)
 
-            is_high_surveillance = location_type in (
-                LocationType.BANK_BRANCH,
-                LocationType.SHOPPING_MALL,
-                LocationType.TRANSPORT_HUB,
-            ) and rng.random() > 0.3
+            is_high_surveillance = (
+                location_type
+                in (
+                    LocationType.BANK_BRANCH,
+                    LocationType.SHOPPING_MALL,
+                    LocationType.TRANSPORT_HUB,
+                )
+                and rng.random() > 0.3
+            )
 
-            locations.append(Location(
-                location_id=f"LOC_{loc_counter:04d}",
-                latitude=round(lat, 6),
-                longitude=round(lon, 6),
-                metro=metro_name,
-                region=region,
-                location_type=location_type,
-                density_score=round(base_density, 3),
-                cash_out_attractiveness=round(base_attractiveness, 3),
-                is_high_surveillance=is_high_surveillance,
-            ))
+            locations.append(
+                Location(
+                    location_id=f"LOC_{loc_counter:04d}",
+                    latitude=round(lat, 6),
+                    longitude=round(lon, 6),
+                    metro=metro_name,
+                    region=region,
+                    location_type=location_type,
+                    density_score=round(base_density, 3),
+                    cash_out_attractiveness=round(base_attractiveness, 3),
+                    is_high_surveillance=is_high_surveillance,
+                )
+            )
 
     return locations
 

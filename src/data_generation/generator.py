@@ -17,12 +17,11 @@ from .candidates import generate_candidates_for_case
 from .config import load_config
 from .ground_truth import generate_ground_truth
 from .locations import generate_locations
+from .scenarios import get_scenario_behavior, get_scenario_weights
 from .schema import (
     Case,
     DatasetManifest,
-    FraudScenario,
 )
-from .scenarios import get_scenario_behavior, get_scenario_weights
 from .transactions import generate_accounts_for_case, generate_all_transactions
 from .validation import DataValidator
 
@@ -54,9 +53,13 @@ def _generate_cases(
         # Random complaint time within a synthetic window
         base_time = datetime(2025, 1, 1)
         complaint_offset = timedelta(days=rng.randint(0, 180))
-        complaint_time = base_time + complaint_offset + timedelta(
-            hours=rng.randint(0, 23),
-            minutes=rng.randint(0, 59),
+        complaint_time = (
+            base_time
+            + complaint_offset
+            + timedelta(
+                hours=rng.randint(0, 23),
+                minutes=rng.randint(0, 59),
+            )
         )
 
         # Origin metro and location
@@ -65,10 +68,13 @@ def _generate_cases(
         origin_loc = rng.choice(metro_locations)
 
         # Amount (synthetic distribution)
-        reported_amount = round(rng.uniform(
-            config.get("transactions", {}).get("min_amount", 2000),
-            config.get("transactions", {}).get("max_amount", 450000),
-        ), 2)
+        reported_amount = round(
+            rng.uniform(
+                config.get("transactions", {}).get("min_amount", 2000),
+                config.get("transactions", {}).get("max_amount", 450000),
+            ),
+            2,
+        )
 
         # Number of accounts and transactions
         min_hops = behavior.min_hops
@@ -76,19 +82,21 @@ def _generate_cases(
         num_transactions = rng.randint(min_hops, max_hops)
         num_accounts = num_transactions + 1
 
-        cases.append(Case(
-            case_id=case_id,
-            complaint_time=complaint_time,
-            fraud_scenario=scenario,
-            reported_amount=reported_amount,
-            origin_metro=origin_metro,
-            origin_location_id=origin_loc.location_id,
-            num_accounts_involved=num_accounts,
-            num_transactions=num_transactions,
-            metadata={
-                "generation_seed_note": "synthetic",
-            },
-        ))
+        cases.append(
+            Case(
+                case_id=case_id,
+                complaint_time=complaint_time,
+                fraud_scenario=scenario,
+                reported_amount=reported_amount,
+                origin_metro=origin_metro,
+                origin_location_id=origin_loc.location_id,
+                num_accounts_involved=num_accounts,
+                num_transactions=num_transactions,
+                metadata={
+                    "generation_seed_note": "synthetic",
+                },
+            )
+        )
 
     return cases
 
@@ -167,9 +175,7 @@ def generate_dataset(
     candidate_config = config.get("candidates", {})
     for case in cases:
         gt = next(gt for gt in ground_truths if gt.case_id == case.case_id)
-        case_cands = generate_candidates_for_case(
-            case, gt, locations, candidate_config, rng
-        )
+        case_cands = generate_candidates_for_case(case, gt, locations, candidate_config, rng)
         candidates.extend(case_cands)
     logger.info(f"Generated {len(candidates)} candidates across {len(cases)} cases")
 
@@ -208,7 +214,7 @@ def generate_dataset(
     )
     _write_jsonl(
         generated_dir / "locations.jsonl",
-        [l.model_dump(mode="json") for l in locations],
+        [loc.model_dump(mode="json") for loc in locations],
     )
     # Candidates: exclude is_true_location from model-visible output
     candidates_visible = []

@@ -7,7 +7,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
 from pathlib import Path
@@ -20,25 +19,11 @@ from src.data_generation.generator import generate_dataset
 
 def main() -> None:
     """Main CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Generate synthetic investigation data for SENTINEL MVP"
-    )
-    parser.add_argument(
-        "--seed", type=int, default=None,
-        help="Random seed for reproducibility"
-    )
-    parser.add_argument(
-        "--config", type=str, default=None,
-        help="Path to config YAML file"
-    )
-    parser.add_argument(
-        "--output", type=str, default=None,
-        help="Output directory for generated data"
-    )
-    parser.add_argument(
-        "--verbose", action="store_true",
-        help="Enable verbose logging"
-    )
+    parser = argparse.ArgumentParser(description="Generate synthetic investigation data for SENTINEL MVP")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+    parser.add_argument("--config", type=str, default=None, help="Path to config YAML file")
+    parser.add_argument("--output", type=str, default=None, help="Output directory for generated data")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 
@@ -67,7 +52,7 @@ def main() -> None:
         print(f"  Ground truths:      {results['ground_truth_count']}")
         print(f"  Random seed:        {results['seed']}")
         print(f"  Output directory:   {results['output_dir']}")
-        print(f"\n  Scenario distribution:")
+        print("\n  Scenario distribution:")
         for scenario, count in results["scenario_distribution"].items():
             print(f"    {scenario}: {count}")
 
