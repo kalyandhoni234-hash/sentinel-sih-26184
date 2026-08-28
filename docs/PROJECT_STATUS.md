@@ -29,12 +29,16 @@ Last updated: 2026-08-28
 - 80 true positives = 80 cases
 - 73 tests passing
 
-## Phase 3 — Weighted Risk Baseline (NEXT)
+## Phase 3 — Weighted Risk Baseline ✅ COMPLETE
 
-- Weighted interpretable baseline model
-- Feature importance analysis
-- Recall@K, MRR evaluation metrics
-- Risk scoring
+- Weighted interpretable baseline model with 5 feature groups
+- Group weights: geographic (30%), transaction (25%), location (15%), temporal (15%), case (15%)
+- Ranking evaluation: Top-1/3/5 accuracy, MRR, mean/median rank
+- Per-scenario performance breakdown
+- Case-level train/test split (80/20)
+- Human-readable candidate explanations
+- 41 new Phase 3 tests (114 total)
+- Baseline evaluation report: docs/baseline_evaluation.json
 
 ## Phase 4 — Random Forest (FUTURE)
 
@@ -77,6 +81,17 @@ Last updated: 2026-08-28
 | Transactions | 261 |
 | Locations | 44 |
 | Features | 47 |
-| Tests | 73 passing |
+| Tests | 114 passing |
 | Python | 3.12 |
 | Framework | scikit-learn (planned) |
+
+## Phase 3 Baseline Results (Test Set)
+
+| Metric | Value |
+|--------|-------|
+| Top-1 Accuracy | 37.5% |
+| Top-3 Accuracy | 62.5% |
+| Top-5 Accuracy | 62.5% |
+| MRR | 0.5119 |
+| Mean Rank | 4.88 |
+| Median Rank | 3.0 |

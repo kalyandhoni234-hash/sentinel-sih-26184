@@ -15,6 +15,7 @@ Tests cover:
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -42,15 +43,19 @@ def _load_jsonl(path: Path) -> list[dict]:
 
 
 def _build_matrix_with_raw_data(seed: int = 42) -> tuple[list[dict], dict]:
-    """Generate data and build feature matrix, returning raw data too."""
-    result = generate_dataset(seed=seed)
-    out = Path(result["output_dir"])
+    """Generate data and build feature matrix, returning raw data too.
 
-    cases_raw = _load_jsonl(out / "generated/cases.jsonl")
-    candidates = _load_jsonl(out / "generated/candidates.jsonl")
-    transactions = _load_jsonl(out / "generated/transactions.jsonl")
-    locations = _load_jsonl(out / "generated/locations.jsonl")
-    ground_truths = _load_jsonl(out / "evaluation/ground_truth.jsonl")
+    Uses a temporary directory to avoid file locking issues on Windows.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = generate_dataset(seed=seed, output_dir=tmpdir)
+        out = Path(result["output_dir"])
+
+        cases_raw = _load_jsonl(out / "generated/cases.jsonl")
+        candidates = _load_jsonl(out / "generated/candidates.jsonl")
+        transactions = _load_jsonl(out / "generated/transactions.jsonl")
+        locations = _load_jsonl(out / "generated/locations.jsonl")
+        ground_truths = _load_jsonl(out / "evaluation/ground_truth.jsonl")
 
     case_objects = []
     for c in cases_raw:

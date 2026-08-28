@@ -130,7 +130,16 @@ def generate_dataset(
 
     # Resolve output directory
     if output_dir is None:
-        output_dir = Path(__file__).parent.parent.parent / "data"
+        # When running under pytest, use a temporary directory by default
+        # to avoid overwriting the canonical synthetic dataset in data/
+        import sys
+
+        if "pytest" in sys.modules:
+            import tempfile
+
+            output_dir = Path(tempfile.mkdtemp(prefix="sentinel_test_"))
+        else:
+            output_dir = Path(__file__).parent.parent.parent / "data"
     else:
         output_dir = Path(output_dir)
 

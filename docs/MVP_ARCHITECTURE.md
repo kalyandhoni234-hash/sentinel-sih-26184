@@ -74,7 +74,15 @@ Evaluation Against Hidden Ground Truth
 - [x] 31 new feature tests + leakage tests
 - [x] 73 total tests passing
 
-### Phase 3 — Weighted Baseline (Planned)
+### Phase 3 — Weighted Baseline ✅
+- [x] Weighted scoring system with 5 feature groups
+- [x] Group weights: geographic (30%), transaction (25%), location (15%), temporal (15%), case (15%)
+- [x] Ranking evaluation: Top-1/3/5, MRR, mean/median rank
+- [x] Per-scenario performance breakdown
+- [x] Human-readable candidate explanations
+- [x] Baseline evaluation script and report
+- [x] 41 new Phase 3 tests + leakage audit
+- [x] 114 total tests passing
 ### Phase 4 — Random Forest (Planned)
 ### Phase 5 — Evaluation (Planned)
 ### Phase 6 — FastAPI (Planned)
@@ -99,24 +107,30 @@ Evaluation Against Hidden Ground Truth
 SENTINEL/
 ├── backend/app/          # FastAPI backend (Phase 6+)
 ├── frontend/             # Next.js frontend (Phase 7+)
-├── src/data_generation/  # Synthetic data generator + features
-│   ├── schema.py         # Pydantic models
-│   ├── generator.py      # Data generation orchestrator
-│   ├── features.py       # Feature engineering (Phase 2)
-│   └── ...
+├── src/
+│   ├── data_generation/  # Synthetic data generator + features
+│   │   ├── schema.py     # Pydantic models
+│   │   ├── generator.py  # Data generation orchestrator
+│   │   ├── features.py   # Feature engineering (Phase 2)
+│   │   └── ...
+│   └── modeling/         # Predictive modeling (Phase 3+)
+│       ├── baseline.py   # Weighted risk baseline scorer
+│       └── evaluation.py # Ranking evaluation metrics
 ├── data/generated/       # Model-visible data
 ├── data/evaluation/      # Hidden ground truth
 ├── configs/              # Configuration files
 ├── scripts/
 │   ├── generate_data.py  # Data generation CLI
-│   └── feature_report.py # Feature sanity report
-├── tests/                # 73 tests
+│   ├── feature_report.py # Feature sanity report
+│   └── run_baseline.py   # Baseline evaluation CLI
+├── tests/                # 114 tests
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md
 │   ├── DATA_LEAKAGE_POLICY.md
 │   ├── FEATURE_CONTRACT.md
 │   ├── PROJECT_STATUS.md
 │   ├── DEVELOPMENT_WORKFLOW.md
+│   ├── baseline_evaluation.json  # Phase 3 evaluation results
 │   └── MVP_ARCHITECTURE.md
 ├── .github/              # CI, PR/issue templates
 └── pyproject.toml

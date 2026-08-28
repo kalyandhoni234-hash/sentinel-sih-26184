@@ -1,0 +1,160 @@
+{
+  "evaluation_timestamp": "2026-08-28T11:44:37.641725",
+  "seed": 42,
+  "train_cases": 64,
+  "test_cases": 16,
+  "total_features": 47,
+  "group_weights": {
+    "geographic": 0.3,
+    "transaction": 0.25,
+    "location": 0.15,
+    "temporal": 0.15,
+    "case": 0.15
+  },
+  "overall_results": {
+    "total_cases": 16,
+    "top1_accuracy": 0.375,
+    "top3_accuracy": 0.625,
+    "top5_accuracy": 0.625,
+    "mrr": 0.5119,
+    "mean_rank": 4.875,
+    "median_rank": 3.0,
+    "top1_count": 6,
+    "top3_count": 10,
+    "top5_count": 10,
+    "true_ranks": [
+      10,
+      2,
+      1,
+      3,
+      3,
+      3,
+      1,
+      1,
+      1,
+      18,
+      1,
+      6,
+      6,
+      1,
+      8,
+      13
+    ]
+  },
+  "scenario_results": {
+    "DELAYED_CASHOUT": {
+      "total_cases": 2,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.5,
+      "top5_accuracy": 0.5,
+      "mrr": 0.2167,
+      "mean_rank": 6.5,
+      "median_rank": 6.5,
+      "top1_count": 0,
+      "top3_count": 1,
+      "top5_count": 1,
+      "true_ranks": [
+        10,
+        3
+      ]
+    },
+    "DIRECT_CASHOUT": {
+      "total_cases": 3,
+      "top1_accuracy": 0.6667,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 0.7778,
+      "mean_rank": 1.6667,
+      "median_rank": 1,
+      "top1_count": 2,
+      "top3_count": 3,
+      "top5_count": 3,
+      "true_ranks": [
+        3,
+        1,
+        1
+      ]
+    },
+    "DISPERSED_ACTIVITY": {
+      "total_cases": 1,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.0,
+      "top5_accuracy": 0.0,
+      "mrr": 0.1667,
+      "mean_rank": 6.0,
+      "median_rank": 6,
+      "top1_count": 0,
+      "top3_count": 0,
+      "top5_count": 0,
+      "true_ranks": [
+        6
+      ]
+    },
+    "GEOGRAPHIC_JUMP": {
+      "total_cases": 4,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.25,
+      "top5_accuracy": 0.25,
+      "mrr": 0.1581,
+      "mean_rank": 10.0,
+      "median_rank": 9.5,
+      "top1_count": 0,
+      "top3_count": 1,
+      "top5_count": 1,
+      "true_ranks": [
+        3,
+        18,
+        6,
+        13
+      ]
+    },
+    "MULTI_HOP": {
+      "total_cases": 1,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 0.5,
+      "mean_rank": 2.0,
+      "median_rank": 2,
+      "top1_count": 0,
+      "top3_count": 1,
+      "top5_count": 1,
+      "true_ranks": [
+        2
+      ]
+    },
+    "RAPID_MULE_CHAIN": {
+      "total_cases": 4,
+      "top1_accuracy": 1.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 1.0,
+      "mean_rank": 1.0,
+      "median_rank": 1.0,
+      "top1_count": 4,
+      "top3_count": 4,
+      "top5_count": 4,
+      "true_ranks": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "URBAN_CLUSTER": {
+      "total_cases": 1,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.0,
+      "top5_accuracy": 0.0,
+      "mrr": 0.125,
+      "mean_rank": 8.0,
+      "median_rank": 8,
+      "top1_count": 0,
+      "top3_count": 0,
+      "top5_count": 0,
+      "true_ranks": [
+        8
+      ]
+    }
+  }
+}
