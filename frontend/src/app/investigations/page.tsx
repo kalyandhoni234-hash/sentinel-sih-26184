@@ -23,14 +23,13 @@ function formatDate(iso: string): string {
 }
 
 const SCENARIO_COLORS: Record<string, string> = {
-  mule_account: "badge-blue",
-  money_mule: "badge-blue",
-  crypto_exchange: "badge-green",
-  hawala: "badge-yellow",
-  layering: "badge-red",
-  smishing: "badge-blue",
-  vishing: "badge-green",
-  otp_fraud: "badge-yellow",
+  DIRECT_CASHOUT: "badge-red",
+  RAPID_MULE_CHAIN: "badge-blue",
+  MULTI_HOP: "badge-yellow",
+  GEOGRAPHIC_JUMP: "badge-green",
+  DELAYED_CASHOUT: "badge-yellow",
+  URBAN_CLUSTER: "badge-blue",
+  DISPERSED_ACTIVITY: "badge-green",
 };
 
 export default function InvestigationsPage() {

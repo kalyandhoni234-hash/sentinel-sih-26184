@@ -40,13 +40,35 @@ SENTINEL is an investigator decision-support system that analyzes synthetic inve
 - Duplicate candidate bug fixed (80 TPs = 80 cases)
 - 73 tests passing
 
-### Planned (Phases 3-8)
-- Weighted risk baseline (Phase 3 — NEXT)
-- Random Forest model (Phase 4)
-- Evaluation framework (Phase 5)
-- FastAPI prediction API (Phase 6)
-- Next.js + Leaflet GIS dashboard (Phase 7)
-- Deployment (Render, Vercel, Supabase) (Phase 8)
+### Phase 3 — Weighted Risk Baseline ✅
+- Weighted interpretable baseline model with 5 feature groups
+- Group weights: geographic (30%), transaction (25%), location (15%), temporal (15%), case (15%)
+- Ranking evaluation: Top-1/3/5 accuracy, MRR, mean/median rank
+- Human-readable candidate explanations
+- 41 new Phase 3 tests
+
+### Phase 4 — Random Forest ✅
+- RandomForestClassifier (200 trees, balanced class weights, random_state=42)
+- Case-level split enforcement (no case in both train and test)
+- Honest comparison: Weighted Baseline wins 6/6 metrics
+- 33 new Phase 4 tests
+
+### Phase 6 — FastAPI Backend ✅
+- FastAPI application with lifespan-based startup
+- Endpoints: GET /health, GET/POST /api/v1/investigations, POST /api/v1/investigations/{id}/rank
+- Pydantic request/response schemas with validation
+- Service layer: DataService + ModelService
+- CORS configuration (configurable via env vars)
+- 34 API tests
+
+### Phase 7 — Frontend Dashboard ✅
+- Next.js 14 + React 18 + Tailwind CSS
+- TypeScript types matching API schemas
+- Investigations list page (search, sort by date/amount/candidates)
+- Case detail page with model selection, top-K control, ranked candidates
+- Leaflet GIS map with origin marker, rank-colored candidate markers, popups, legend
+- Bidirectional highlight sync between candidate cards and map
+- Health/status page showing API endpoints and available models
 
 ## Quick Start
 
@@ -81,7 +103,7 @@ python scripts/feature_report.py
 ### Run Tests
 
 ```bash
-# All 73 tests
+# All 181 tests
 pytest -q
 
 # Feature tests only
@@ -116,22 +138,28 @@ See [docs/DATA_LEAKAGE_POLICY.md](docs/DATA_LEAKAGE_POLICY.md) for the three-lay
 
 ```
 SENTINEL/
-├── backend/app/          # FastAPI backend (Phase 6+)
-├── frontend/             # Next.js frontend (Phase 7+)
+├── backend/app/          # FastAPI backend
+├── frontend/             # Next.js frontend with Leaflet GIS
 ├── src/data_generation/  # Synthetic data generator + features
 │   ├── schema.py         # Pydantic models
 │   ├── generator.py      # Data generation orchestrator
 │   ├── features.py       # Feature engineering
 │   └── ...
+├── src/modeling/         # Predictive modeling
+│   ├── baseline.py       # Weighted risk baseline
+│   ├── evaluation.py     # Ranking evaluation metrics
+│   ├── random_forest.py  # Random Forest classifier
+│   └── comparison.py     # Baseline vs RF comparison
 ├── data/generated/       # Model-visible data (.jsonl)
 ├── data/evaluation/      # Hidden ground truth (.jsonl)
 ├── configs/              # Configuration files
 ├── scripts/
 │   ├── generate_data.py  # Data generation CLI
-│   └── feature_report.py # Feature sanity report
-├── tests/                # 73 tests
+│   ├── feature_report.py # Feature sanity report
+│   ├── run_baseline.py   # Baseline evaluation CLI
+│   └── run_rf_evaluation.py  # RF evaluation CLI
+├── tests/                # 181 tests
 ├── docs/                 # Documentation
-├── .github/              # CI workflows, PR/issue templates
 └── pyproject.toml
 ```
 

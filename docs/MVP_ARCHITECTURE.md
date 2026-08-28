@@ -111,11 +111,11 @@ Evaluation Against Hidden Ground Truth
 - [x] Location info for map display (lat, lng, metro, region, type)
 - [x] Investigator decision-support language
 - [x] No ground truth exposed via API
-- [x] 33 new API tests (180 total)
+- [x] 33 new API tests (181 total)
 - [x] Local startup: `uvicorn backend.app.main:app --reload`
 - [x] API docs: http://localhost:8000/docs
 
-### Phase 7 — Next.js/GIS Dashboard (Scaffold Complete)
+### Phase 7 — Next.js/GIS Dashboard ✅ COMPLETE
 - [x] Next.js 14 + React 18 + Tailwind CSS project
 - [x] TypeScript types matching API schemas
 - [x] API client for backend integration
@@ -123,11 +123,9 @@ Evaluation Against Hidden Ground Truth
 - [x] Home page with API health status
 - [x] Investigations list page (search, sort, filter)
 - [x] Case detail page with candidate ranking
-- [x] Map component placeholder (Leaflet integration TBD)
-- [x] Ranking table component
+- [x] Leaflet GIS map with origin marker, rank-colored candidates, popups, legend
+- [x] Bidirectional highlight sync between cards and map
 - [x] Health/status page
-- [ ] Leaflet/MapLibre GIS integration (TBD)
-- [ ] Real-time data refresh
 
 ### Phase 8 — Integration + Demo Hardening (Planned)
 
@@ -171,10 +169,11 @@ SENTINEL/
 │   │   │       ├── page.tsx    # Case list
 │   │   │       └── [caseId]/page.tsx  # Case detail + ranking
 │   │   ├── components/
-│   │   │   ├── MapPlaceholder.tsx  # GIS map placeholder
-│   │   │   └── RankingTable.tsx    # Tabular ranking view
+│   │   │   ├── SentinelMap.tsx       # Leaflet GIS map
+│   │   │   └── SentinelMapWrapper.tsx # SSR-safe dynamic import
 │   │   ├── lib/
-│   │   │   └── api.ts          # API client
+│   │   │   ├── api.ts          # API client
+│   │   │   └── leaflet-fix.ts  # Leaflet default icon fix
 │   │   └── types/
 │   │       └── api.ts          # TypeScript types
 │   ├── package.json
@@ -199,8 +198,8 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # Phase 4 RF evaluation CLI
-├── tests/                # 180 tests (backend)
-├── frontend/             # 4 pages, 2 components
+├── tests/                # 181 tests (backend)
+├── frontend/             # 4 pages, 2 components (Leaflet GIS)
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md
 │   ├── DATA_LEAKAGE_POLICY.md

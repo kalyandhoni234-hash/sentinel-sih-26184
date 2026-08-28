@@ -76,18 +76,19 @@ Last updated: 2026-08-28
 - Local startup: `uvicorn backend.app.main:app --reload`
 - API docs: http://localhost:8000/docs
 
-## Phase 7 — Frontend Dashboard ✅ SCAFFOLD COMPLETE
+## Phase 7 — Frontend Dashboard ✅ COMPLETE
 
-- Next.js 14 + React 18 + Tailwind CSS project scaffolded
+- Next.js 14 + React 18 + Tailwind CSS project
 - TypeScript types matching API schemas (api.ts)
 - API client for backend integration (lib/api.ts)
 - Root layout with navigation header
 - Home page with API health check + status cards
-- Investigations list page (search, sort by date/amount/candidates)
+- Investigations list page (search, sort by date/amount/candidates, scenario color badges)
 - Case detail page with model selection, top-K control, ranked candidates
-- Map placeholder component (Leaflet TBD)
-- Ranking table component
-- Health/status page
+- Leaflet GIS map with origin marker, rank-colored candidate markers, popups, legend
+- Bidirectional highlight sync between candidate cards and map
+- SSR-safe dynamic import for Leaflet
+- Health/status page showing API endpoints and available models
 - Build passes: `npm run build`
 - Type check passes: `npm run typecheck`
 - Frontend dev: `cd frontend && npm run dev`
@@ -110,7 +111,7 @@ Last updated: 2026-08-28
 | Locations | 44 |
 | Features | 47 |
 | Tests | 181 passing (backend) |
-| Frontend | 4 pages, 2 components |
+| Frontend | 4 pages, 2 components (SentinelMap, SentinelMapWrapper) |
 | Python | 3.12 |
 | ML | scikit-learn 1.9 |
 | API | FastAPI 0.141 |

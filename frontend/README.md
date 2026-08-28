@@ -30,15 +30,17 @@ src/
 ├── app/                    # Next.js App Router pages
 │   ├── layout.tsx          # Root layout with nav
 │   ├── page.tsx            # Home page
+│   ├── globals.css         # Tailwind + Leaflet CSS overrides
 │   ├── health/page.tsx     # API status page
 │   └── investigations/
-│       ├── page.tsx        # Case list
-│       └── [caseId]/page.tsx  # Case detail + ranking
+│       ├── page.tsx        # Case list (search, sort, table)
+│       └── [caseId]/page.tsx  # Case detail + ranking + map
 ├── components/
-│   ├── MapPlaceholder.tsx  # GIS map placeholder
-│   └── RankingTable.tsx    # Tabular ranking view
+│   ├── SentinelMap.tsx     # Leaflet GIS map (origin, candidates, popups, legend)
+│   └── SentinelMapWrapper.tsx  # SSR-safe dynamic import wrapper
 ├── lib/
-│   └── api.ts              # API client
+│   ├── api.ts              # API client (health, list, detail, rank)
+│   └── leaflet-fix.ts      # Leaflet default icon fix
 └── types/
-    └── api.ts              # TypeScript types
+    └── api.ts              # TypeScript types matching backend schemas
 ```
