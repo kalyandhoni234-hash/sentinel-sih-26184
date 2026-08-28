@@ -83,9 +83,38 @@ Evaluation Against Hidden Ground Truth
 - [x] Baseline evaluation script and report
 - [x] 41 new Phase 3 tests + leakage audit
 - [x] 114 total tests passing
-### Phase 4 — Random Forest (Planned)
+
+### Phase 4 — Random Forest ✅
+- [x] RandomForestClassifier (200 trees, balanced, random_state=42)
+- [x] Case-level split enforcement (no case in both train/test)
+- [x] Full ranking evaluation (same metrics as Phase 3)
+- [x] Per-scenario performance breakdown
+- [x] Feature importance (individual + group aggregation)
+- [x] Comparison framework (baseline vs RF)
+- [x] Reproducible evaluation script (run_rf_evaluation.py)
+- [x] 33 new Phase 4 tests (147 total)
+- [x] Honest comparison: Weighted Baseline wins 6/6 metrics
+- [x] All data is SYNTHETIC
+
 ### Phase 5 — Evaluation (Planned)
-### Phase 6 — FastAPI (Planned)
+### Phase 6 — FastAPI ✅
+- [x] FastAPI application with lifespan-based startup
+- [x] Route/service/schema separation
+- [x] GET /health endpoint
+- [x] GET /api/v1/investigations (list all cases)
+- [x] GET /api/v1/investigations/{case_id} (case details)
+- [x] POST /api/v1/investigations/{case_id}/rank (rank candidates)
+- [x] Pydantic request/response schemas with validation
+- [x] DataService: data loading, feature pipeline, location lookups
+- [x] ModelService: RF training, baseline/RF scoring, explanations
+- [x] CORS configuration (configurable via env vars)
+- [x] Location info for map display (lat, lng, metro, region, type)
+- [x] Investigator decision-support language
+- [x] No ground truth exposed via API
+- [x] 33 new API tests (180 total)
+- [x] Local startup: `uvicorn backend.app.main:app --reload`
+- [x] API docs: http://localhost:8000/docs
+
 ### Phase 7 — Next.js/GIS Dashboard (Planned)
 ### Phase 8 — Integration + Demo Hardening (Planned)
 
@@ -105,7 +134,20 @@ Evaluation Against Hidden Ground Truth
 
 ```
 SENTINEL/
-├── backend/app/          # FastAPI backend (Phase 6+)
+├── backend/
+│   └── app/
+│       ├── __init__.py
+│       ├── main.py           # FastAPI app entry point
+│       ├── config.py         # Settings from environment variables
+│       ├── schemas.py        # Pydantic request/response models
+│       ├── routes/
+│       │   ├── __init__.py
+│       │   ├── health.py     # GET /health
+│       │   └── investigations.py  # Investigation + ranking endpoints
+│       └── services/
+│           ├── __init__.py
+│           ├── data_service.py    # Data loading + feature pipeline
+│           └── model_service.py   # Model training + scoring
 ├── frontend/             # Next.js frontend (Phase 7+)
 ├── src/
 │   ├── data_generation/  # Synthetic data generator + features
@@ -115,15 +157,18 @@ SENTINEL/
 │   │   └── ...
 │   └── modeling/         # Predictive modeling (Phase 3+)
 │       ├── baseline.py   # Weighted risk baseline scorer
-│       └── evaluation.py # Ranking evaluation metrics
+│       ├── evaluation.py # Ranking evaluation metrics
+│       ├── random_forest.py  # Random Forest classifier (Phase 4)
+│       └── comparison.py     # Baseline vs RF comparison
 ├── data/generated/       # Model-visible data
 ├── data/evaluation/      # Hidden ground truth
 ├── configs/              # Configuration files
 ├── scripts/
 │   ├── generate_data.py  # Data generation CLI
 │   ├── feature_report.py # Feature sanity report
-│   └── run_baseline.py   # Baseline evaluation CLI
-├── tests/                # 114 tests
+│   ├── run_baseline.py   # Baseline evaluation CLI
+│   └── run_rf_evaluation.py  # Phase 4 RF evaluation CLI
+├── tests/                # 180 tests
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md
 │   ├── DATA_LEAKAGE_POLICY.md
@@ -131,6 +176,7 @@ SENTINEL/
 │   ├── PROJECT_STATUS.md
 │   ├── DEVELOPMENT_WORKFLOW.md
 │   ├── baseline_evaluation.json  # Phase 3 evaluation results
+│   ├── rf_evaluation.json        # Phase 4 evaluation results
 │   └── MVP_ARCHITECTURE.md
 ├── .github/              # CI, PR/issue templates
 └── pyproject.toml

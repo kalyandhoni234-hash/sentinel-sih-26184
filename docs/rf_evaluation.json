@@ -1,0 +1,611 @@
+{
+  "evaluation_timestamp": "2026-08-28T12:29:00.907657",
+  "seed": 42,
+  "train_cases": 64,
+  "test_cases": 16,
+  "total_features": 47,
+  "rf_config": {
+    "n_estimators": 200,
+    "max_depth": null,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "class_weight": "balanced",
+    "random_state": 42,
+    "n_jobs": 1
+  },
+  "rf_results": {
+    "total_cases": 16,
+    "top1_accuracy": 0.3125,
+    "top3_accuracy": 0.625,
+    "top5_accuracy": 0.875,
+    "mrr": 0.5161,
+    "mean_rank": 3.1875,
+    "median_rank": 3.0,
+    "top1_count": 5,
+    "top3_count": 10,
+    "top5_count": 14,
+    "true_ranks": [
+      3,
+      4,
+      1,
+      1,
+      1,
+      2,
+      3,
+      3,
+      4,
+      4,
+      1,
+      2,
+      6,
+      11,
+      4,
+      1
+    ]
+  },
+  "rf_scenario_results": {
+    "DELAYED_CASHOUT": {
+      "total_cases": 1,
+      "top1_accuracy": 1.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 1.0,
+      "mean_rank": 1.0,
+      "median_rank": 1,
+      "top1_count": 1,
+      "top3_count": 1,
+      "top5_count": 1,
+      "true_ranks": [
+        1
+      ]
+    },
+    "DIRECT_CASHOUT": {
+      "total_cases": 4,
+      "top1_accuracy": 0.5,
+      "top3_accuracy": 0.75,
+      "top5_accuracy": 1.0,
+      "mrr": 0.6458,
+      "mean_rank": 2.25,
+      "median_rank": 2.0,
+      "top1_count": 2,
+      "top3_count": 3,
+      "top5_count": 4,
+      "true_ranks": [
+        1,
+        3,
+        4,
+        1
+      ]
+    },
+    "DISPERSED_ACTIVITY": {
+      "total_cases": 1,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.0,
+      "top5_accuracy": 0.0,
+      "mrr": 0.0909,
+      "mean_rank": 11.0,
+      "median_rank": 11,
+      "top1_count": 0,
+      "top3_count": 0,
+      "top5_count": 0,
+      "true_ranks": [
+        11
+      ]
+    },
+    "GEOGRAPHIC_JUMP": {
+      "total_cases": 2,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.5,
+      "top5_accuracy": 1.0,
+      "mrr": 0.375,
+      "mean_rank": 3.0,
+      "median_rank": 3.0,
+      "top1_count": 0,
+      "top3_count": 1,
+      "top5_count": 2,
+      "true_ranks": [
+        2,
+        4
+      ]
+    },
+    "MULTI_HOP": {
+      "total_cases": 2,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.5,
+      "top5_accuracy": 1.0,
+      "mrr": 0.2917,
+      "mean_rank": 3.5,
+      "median_rank": 3.5,
+      "top1_count": 0,
+      "top3_count": 1,
+      "top5_count": 2,
+      "true_ranks": [
+        3,
+        4
+      ]
+    },
+    "RAPID_MULE_CHAIN": {
+      "total_cases": 6,
+      "top1_accuracy": 0.3333,
+      "top3_accuracy": 0.6667,
+      "top5_accuracy": 0.8333,
+      "mrr": 0.5417,
+      "mean_rank": 2.8333,
+      "median_rank": 2.5,
+      "top1_count": 2,
+      "top3_count": 4,
+      "top5_count": 5,
+      "true_ranks": [
+        4,
+        1,
+        1,
+        3,
+        2,
+        6
+      ]
+    }
+  },
+  "baseline_results": {
+    "total_cases": 16,
+    "top1_accuracy": 0.4375,
+    "top3_accuracy": 0.8125,
+    "top5_accuracy": 0.875,
+    "mrr": 0.6434,
+    "mean_rank": 2.6875,
+    "median_rank": 2.0,
+    "top1_count": 7,
+    "top3_count": 13,
+    "top5_count": 14,
+    "true_ranks": [
+      2,
+      4,
+      2,
+      1,
+      1,
+      1,
+      1,
+      2,
+      1,
+      3,
+      2,
+      2,
+      10,
+      9,
+      1,
+      1
+    ]
+  },
+  "baseline_scenario_results": {
+    "DELAYED_CASHOUT": {
+      "total_cases": 1,
+      "top1_accuracy": 1.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 1.0,
+      "mean_rank": 1.0,
+      "median_rank": 1,
+      "top1_count": 1,
+      "top3_count": 1,
+      "top5_count": 1,
+      "true_ranks": [
+        1
+      ]
+    },
+    "DIRECT_CASHOUT": {
+      "total_cases": 4,
+      "top1_accuracy": 0.25,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 0.625,
+      "mean_rank": 1.75,
+      "median_rank": 2.0,
+      "top1_count": 1,
+      "top3_count": 4,
+      "top5_count": 4,
+      "true_ranks": [
+        2,
+        2,
+        1,
+        2
+      ]
+    },
+    "DISPERSED_ACTIVITY": {
+      "total_cases": 1,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 0.0,
+      "top5_accuracy": 0.0,
+      "mrr": 0.1111,
+      "mean_rank": 9.0,
+      "median_rank": 9,
+      "top1_count": 0,
+      "top3_count": 0,
+      "top5_count": 0,
+      "true_ranks": [
+        9
+      ]
+    },
+    "GEOGRAPHIC_JUMP": {
+      "total_cases": 2,
+      "top1_accuracy": 1.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 1.0,
+      "mean_rank": 1.0,
+      "median_rank": 1.0,
+      "top1_count": 2,
+      "top3_count": 2,
+      "top5_count": 2,
+      "true_ranks": [
+        1,
+        1
+      ]
+    },
+    "MULTI_HOP": {
+      "total_cases": 2,
+      "top1_accuracy": 0.0,
+      "top3_accuracy": 1.0,
+      "top5_accuracy": 1.0,
+      "mrr": 0.4167,
+      "mean_rank": 2.5,
+      "median_rank": 2.5,
+      "top1_count": 0,
+      "top3_count": 2,
+      "top5_count": 2,
+      "true_ranks": [
+        2,
+        3
+      ]
+    },
+    "RAPID_MULE_CHAIN": {
+      "total_cases": 6,
+      "top1_accuracy": 0.5,
+      "top3_accuracy": 0.6667,
+      "top5_accuracy": 0.8333,
+      "mrr": 0.6417,
+      "mean_rank": 3.1667,
+      "median_rank": 1.5,
+      "top1_count": 3,
+      "top3_count": 4,
+      "top5_count": 5,
+      "true_ranks": [
+        4,
+        1,
+        1,
+        1,
+        2,
+        10
+      ]
+    }
+  },
+  "comparison": {
+    "metric_comparison": {
+      "top1_accuracy": {
+        "baseline": 0.4375,
+        "rf": 0.3125,
+        "delta": -0.125,
+        "rf_wins": false
+      },
+      "top3_accuracy": {
+        "baseline": 0.8125,
+        "rf": 0.625,
+        "delta": -0.1875,
+        "rf_wins": false
+      },
+      "top5_accuracy": {
+        "baseline": 0.875,
+        "rf": 0.875,
+        "delta": 0.0,
+        "rf_wins": false
+      },
+      "mrr": {
+        "baseline": 0.6434,
+        "rf": 0.5161,
+        "delta": -0.1273,
+        "rf_wins": false
+      },
+      "mean_rank": {
+        "baseline": 2.6875,
+        "rf": 3.1875,
+        "delta": -0.5,
+        "rf_wins": false
+      },
+      "median_rank": {
+        "baseline": 2.0,
+        "rf": 3.0,
+        "delta": -1.0,
+        "rf_wins": false
+      }
+    },
+    "overall_winner": "weighted_baseline",
+    "rf_wins_count": 0,
+    "baseline_wins_count": 6,
+    "scenario_comparison": {
+      "DELAYED_CASHOUT": {
+        "baseline_mrr": 1.0,
+        "rf_mrr": 1.0,
+        "rf_wins": false,
+        "baseline_top1": 1.0,
+        "rf_top1": 1.0
+      },
+      "DIRECT_CASHOUT": {
+        "baseline_mrr": 0.625,
+        "rf_mrr": 0.6458,
+        "rf_wins": true,
+        "baseline_top1": 0.25,
+        "rf_top1": 0.5
+      },
+      "DISPERSED_ACTIVITY": {
+        "baseline_mrr": 0.1111,
+        "rf_mrr": 0.0909,
+        "rf_wins": false,
+        "baseline_top1": 0.0,
+        "rf_top1": 0.0
+      },
+      "GEOGRAPHIC_JUMP": {
+        "baseline_mrr": 1.0,
+        "rf_mrr": 0.375,
+        "rf_wins": false,
+        "baseline_top1": 1.0,
+        "rf_top1": 0.0
+      },
+      "MULTI_HOP": {
+        "baseline_mrr": 0.4167,
+        "rf_mrr": 0.2917,
+        "rf_wins": false,
+        "baseline_top1": 0.0,
+        "rf_top1": 0.0
+      },
+      "RAPID_MULE_CHAIN": {
+        "baseline_mrr": 0.6417,
+        "rf_mrr": 0.5417,
+        "rf_wins": false,
+        "baseline_top1": 0.5,
+        "rf_top1": 0.3333
+      }
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "cand_max_distance_from_any_tx_km",
+      "importance": 0.12899715052019498,
+      "rank": 1
+    },
+    {
+      "feature": "cand_distance_from_origin_km",
+      "importance": 0.1007521500660686,
+      "rank": 2
+    },
+    {
+      "feature": "cand_min_distance_from_any_tx_km",
+      "importance": 0.09943220954328885,
+      "rank": 3
+    },
+    {
+      "feature": "cand_mean_distance_from_tx_endpoints_km",
+      "importance": 0.09863021126863844,
+      "rank": 4
+    },
+    {
+      "feature": "cand_distance_from_last_tx_km",
+      "importance": 0.07039642284145048,
+      "rank": 5
+    },
+    {
+      "feature": "loc_density_score",
+      "importance": 0.045932613029297416,
+      "rank": 6
+    },
+    {
+      "feature": "cand_same_metro_as_last_tx",
+      "importance": 0.040056559579582866,
+      "rank": 7
+    },
+    {
+      "feature": "cand_same_metro_as_origin",
+      "importance": 0.027886354533868684,
+      "rank": 8
+    },
+    {
+      "feature": "case_reported_amount",
+      "importance": 0.020036570640322573,
+      "rank": 9
+    },
+    {
+      "feature": "tx_amount_to_reported_ratio",
+      "importance": 0.01953380110041063,
+      "rank": 10
+    },
+    {
+      "feature": "tx_unique_metros",
+      "importance": 0.018726321439323564,
+      "rank": 11
+    },
+    {
+      "feature": "tx_total_amount",
+      "importance": 0.0178564714779341,
+      "rank": 12
+    },
+    {
+      "feature": "complaint_delay_from_last_tx_hours",
+      "importance": 0.01687542178844049,
+      "rank": 13
+    },
+    {
+      "feature": "tx_amount_std",
+      "importance": 0.016816831290809978,
+      "rank": 14
+    },
+    {
+      "feature": "time_since_last_tx_to_complaint_hours",
+      "importance": 0.016771291328475123,
+      "rank": 15
+    },
+    {
+      "feature": "last_tx_hour_of_day",
+      "importance": 0.01665493208178443,
+      "rank": 16
+    },
+    {
+      "feature": "complaint_day_of_week",
+      "importance": 0.015894971736194287,
+      "rank": 17
+    },
+    {
+      "feature": "loc_is_high_surveillance",
+      "importance": 0.01583675800896265,
+      "rank": 18
+    },
+    {
+      "feature": "tx_max_amount",
+      "importance": 0.015627344534357948,
+      "rank": 19
+    },
+    {
+      "feature": "complaint_hour_of_day",
+      "importance": 0.015600018964329863,
+      "rank": 20
+    },
+    {
+      "feature": "tx_avg_amount",
+      "importance": 0.014611593813367936,
+      "rank": 21
+    },
+    {
+      "feature": "tx_amount_range",
+      "importance": 0.014473823991182706,
+      "rank": 22
+    },
+    {
+      "feature": "tx_cross_metro_count",
+      "importance": 0.013506438165111124,
+      "rank": 23
+    },
+    {
+      "feature": "case_scenario_GEOGRAPHIC_JUMP",
+      "importance": 0.01296494557774192,
+      "rank": 24
+    },
+    {
+      "feature": "tx_velocity_per_hour",
+      "importance": 0.012519007248848866,
+      "rank": 25
+    },
+    {
+      "feature": "loc_is_cashout_friendly_type",
+      "importance": 0.012072850979619241,
+      "rank": 26
+    },
+    {
+      "feature": "tx_chain_duration_hours",
+      "importance": 0.010707488187746486,
+      "rank": 27
+    },
+    {
+      "feature": "tx_min_inter_arrival_hours",
+      "importance": 0.009576773326091973,
+      "rank": 28
+    },
+    {
+      "feature": "tx_avg_inter_arrival_hours",
+      "importance": 0.009570599776108411,
+      "rank": 29
+    },
+    {
+      "feature": "tx_max_inter_arrival_hours",
+      "importance": 0.008367057726941445,
+      "rank": 30
+    },
+    {
+      "feature": "case_num_transactions",
+      "importance": 0.007784396800891435,
+      "rank": 31
+    },
+    {
+      "feature": "case_num_accounts",
+      "importance": 0.007696710829851747,
+      "rank": 32
+    },
+    {
+      "feature": "loc_type_atm",
+      "importance": 0.006780930610901098,
+      "rank": 33
+    },
+    {
+      "feature": "tx_count",
+      "importance": 0.004982668278534081,
+      "rank": 34
+    },
+    {
+      "feature": "loc_type_market",
+      "importance": 0.004732843717139007,
+      "rank": 35
+    },
+    {
+      "feature": "tx_hop_count",
+      "importance": 0.004665496264549675,
+      "rank": 36
+    },
+    {
+      "feature": "case_scenario_DISPERSED_ACTIVITY",
+      "importance": 0.003972508063805574,
+      "rank": 37
+    },
+    {
+      "feature": "loc_type_shopping_mall",
+      "importance": 0.0038715908119218373,
+      "rank": 38
+    },
+    {
+      "feature": "loc_type_transport_hub",
+      "importance": 0.0034664412331320525,
+      "rank": 39
+    },
+    {
+      "feature": "loc_type_bank_branch",
+      "importance": 0.002944186090993557,
+      "rank": 40
+    },
+    {
+      "feature": "loc_type_money_transfer",
+      "importance": 0.0028935806666329704,
+      "rank": 41
+    },
+    {
+      "feature": "case_scenario_RAPID_MULE_CHAIN",
+      "importance": 0.0024713869312376433,
+      "rank": 42
+    },
+    {
+      "feature": "cand_same_region_as_origin",
+      "importance": 0.002466873741647445,
+      "rank": 43
+    },
+    {
+      "feature": "case_scenario_MULTI_HOP",
+      "importance": 0.0017338684675225358,
+      "rank": 44
+    },
+    {
+      "feature": "case_scenario_DIRECT_CASHOUT",
+      "importance": 0.001187269216603575,
+      "rank": 45
+    },
+    {
+      "feature": "case_scenario_DELAYED_CASHOUT",
+      "importance": 0.0008460181334143325,
+      "rank": 46
+    },
+    {
+      "feature": "case_scenario_URBAN_CLUSTER",
+      "importance": 0.0008182455747252679,
+      "rank": 47
+    }
+  ],
+  "group_importance": {
+    "geographic": 0.568618,
+    "transaction": 0.191542,
+    "location": 0.098532,
+    "temporal": 0.081797,
+    "case": 0.059512
+  }
+}

@@ -1,5 +1,5 @@
-"""SENTINEL Phase 3: Weighted Risk Baseline.
+"""SENTINEL Modeling Package.
 
-Explainable weighted scoring system for ranking candidate cash-out locations
-using only Layer-A information available at complaint time.
+Phase 3: Weighted Risk Baseline — explainable weighted scoring system.
+Phase 4: Random Forest — ML-based classification with feature importance.
 """
