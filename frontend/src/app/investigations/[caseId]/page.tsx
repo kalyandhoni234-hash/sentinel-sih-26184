@@ -14,6 +14,16 @@ function formatINR(amount: number): string {
   }).format(amount);
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function RiskBar({ score }: { score: number }) {
   const width = Math.round(score * 100);
   const color =
@@ -131,7 +141,7 @@ export default function CaseDetailPage() {
     api
       .rankCandidates(caseId, {
         model,
-        top_k: topK,
+        top_k: Math.max(1, topK),
       })
       .then(setData)
       .catch((err) => setError(err.message))
@@ -150,10 +160,17 @@ export default function CaseDetailPage() {
             Case {caseId}
           </h2>
           {data && (
-            <p className="text-sm text-gray-500">
-              {data.case.fraud_scenario} — {data.case.origin_metro} —{" "}
-              {formatINR(data.case.reported_amount)}
-            </p>
+            <>
+              <p className="text-sm text-gray-500">
+                {data.case.fraud_scenario} — {data.case.origin_metro} —{" "}
+                {formatINR(data.case.reported_amount)}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-400">
+                Filed {formatDate(data.case.complaint_time)} ·{" "}
+                {data.case.num_accounts_involved} accounts ·{" "}
+                {data.case.num_transactions} transactions
+              </p>
+            </>
           )}
         </div>
         <a
