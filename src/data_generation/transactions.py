@@ -115,7 +115,7 @@ def generate_transaction_chain(
     current_amount = case.reported_amount * rng.uniform(0.9, 1.1)
 
     # Assign metros to accounts based on scenario behavior
-    metros = list({loc.metro for loc in locations})
+    metros = sorted({loc.metro for loc in locations})
     origin_metro = case.origin_metro
 
     if scenario_behavior.allow_cross_metro and rng.random() < scenario_behavior.preferred_metro_spread:

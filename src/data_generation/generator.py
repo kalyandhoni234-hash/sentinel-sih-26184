@@ -39,7 +39,7 @@ def _generate_cases(
     scenario_weights = get_scenario_weights(config)
 
     # Get metro names from locations
-    metros = list({loc.metro for loc in locations})
+    metros = sorted({loc.metro for loc in locations})
 
     cases = []
     scenarios = list(scenario_weights.keys())
