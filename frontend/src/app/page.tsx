@@ -60,7 +60,8 @@ export default function HomePage() {
         <a href="/investigations/new" className="card hover:border-sentinel-300 transition-colors">
           <h3 className="font-semibold text-gray-900">New Investigation</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Select a synthetic demo case and run the SENTINEL analysis pipeline.
+            Enter complaint information, match it to a synthetic demo case, and
+            run the SENTINEL analysis pipeline.
           </p>
         </a>
         <a href="/investigations" className="card hover:border-sentinel-300 transition-colors">
