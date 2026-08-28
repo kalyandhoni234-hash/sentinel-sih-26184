@@ -30,6 +30,8 @@ export interface CaseInfo {
   fraud_scenario: string;
   reported_amount: number;
   origin_metro: string;
+  origin_latitude: number | null;
+  origin_longitude: number | null;
   num_accounts_involved: number;
   num_transactions: number;
   num_candidates: number;

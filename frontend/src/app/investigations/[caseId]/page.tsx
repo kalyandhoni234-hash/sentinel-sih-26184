@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import type { RankResponse, RankedCandidate } from "@/types/api";
+import { SentinelMapWrapper } from "@/components/SentinelMapWrapper";
 
 function formatINR(amount: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -34,11 +35,24 @@ function RiskBar({ score }: { score: number }) {
   );
 }
 
-function CandidateCard({ candidate }: { candidate: RankedCandidate }) {
+function CandidateCard({
+  candidate,
+  isHighlighted,
+  onHighlight,
+}: {
+  candidate: RankedCandidate;
+  isHighlighted: boolean;
+  onHighlight: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="card">
+    <div
+      className={`card cursor-pointer transition-colors ${
+        isHighlighted ? "border-sentinel-400 bg-sentinel-50" : ""
+      }`}
+      onClick={() => onHighlight(candidate.location_id)}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sentinel-100 text-sm font-bold text-sentinel-700">
@@ -64,7 +78,10 @@ function CandidateCard({ candidate }: { candidate: RankedCandidate }) {
       {candidate.group_scores && (
         <div className="mt-3">
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
             className="text-xs font-medium text-sentinel-600 hover:text-sentinel-800"
           >
             {expanded ? "Hide" : "Show"} group breakdown
@@ -105,10 +122,12 @@ export default function CaseDetailPage() {
     "weighted_baseline"
   );
   const [topK, setTopK] = useState<number>(10);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const loadRanking = () => {
     setLoading(true);
     setError(null);
+    setHighlightedId(null);
     api
       .rankCandidates(caseId, {
         model,
@@ -220,12 +239,30 @@ export default function CaseDetailPage() {
             </div>
           </div>
 
+          <div className="rounded-lg border border-gray-200 bg-white p-2">
+            <SentinelMapWrapper
+              caseInfo={data.case}
+              candidates={data.ranked_candidates}
+              highlightedId={highlightedId}
+            />
+            <p className="mt-2 px-2 text-[11px] text-gray-400">
+              Ranked candidates are risk-based priorities derived from
+              available query-time evidence; they are not guaranteed
+              predictions. All data is synthetic.
+            </p>
+          </div>
+
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
               Ranked Candidates
             </h3>
             {data.ranked_candidates.map((c) => (
-              <CandidateCard key={c.location_id} candidate={c} />
+              <CandidateCard
+                key={c.location_id}
+                candidate={c}
+                isHighlighted={highlightedId === c.location_id}
+                onHighlight={setHighlightedId}
+              />
             ))}
           </div>
         </>

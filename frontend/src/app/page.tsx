@@ -63,12 +63,12 @@ export default function HomePage() {
             View all 80 synthetic fraud cases and their candidate locations.
           </p>
         </a>
-        <div className="card opacity-50">
+        <a href="/investigations" className="card hover:border-sentinel-300 transition-colors">
           <h3 className="font-semibold text-gray-900">Map View</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Geographic visualization of ranked candidates. Coming soon.
+            Geographic visualization of ranked candidates per investigation.
           </p>
-        </div>
+        </a>
         <div className="card opacity-50">
           <h3 className="font-semibold text-gray-900">Analytics</h3>
           <p className="mt-1 text-sm text-gray-500">

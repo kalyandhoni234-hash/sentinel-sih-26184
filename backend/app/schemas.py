@@ -112,6 +112,14 @@ class CaseInfo(BaseModel):
     fraud_scenario: str = Field(..., description="Type of fraud scenario")
     reported_amount: float = Field(..., description="Reported fraud amount in INR")
     origin_metro: str = Field(..., description="Metro area where complaint originated")
+    origin_latitude: float | None = Field(
+        default=None,
+        description="Latitude of complaint origin location",
+    )
+    origin_longitude: float | None = Field(
+        default=None,
+        description="Longitude of complaint origin location",
+    )
     num_accounts_involved: int = Field(..., description="Number of accounts in the chain")
     num_transactions: int = Field(..., description="Number of transactions in the chain")
     num_candidates: int = Field(..., description="Number of candidate locations")
