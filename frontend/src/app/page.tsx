@@ -57,16 +57,16 @@ export default function HomePage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <a href="/investigations" className="card hover:border-sentinel-300 transition-colors">
-          <h3 className="font-semibold text-gray-900">All Investigations</h3>
+        <a href="/investigations/new" className="card hover:border-sentinel-300 transition-colors">
+          <h3 className="font-semibold text-gray-900">New Investigation</h3>
           <p className="mt-1 text-sm text-gray-500">
-            View all 80 synthetic fraud cases and their candidate locations.
+            Select a synthetic demo case and run the SENTINEL analysis pipeline.
           </p>
         </a>
         <a href="/investigations" className="card hover:border-sentinel-300 transition-colors">
-          <h3 className="font-semibold text-gray-900">Map View</h3>
+          <h3 className="font-semibold text-gray-900">All Cases</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Geographic visualization of ranked candidates per investigation.
+            View all 80 synthetic fraud cases and their candidate locations.
           </p>
         </a>
         <div className="card opacity-50">

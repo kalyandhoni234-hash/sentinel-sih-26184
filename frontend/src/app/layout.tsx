@@ -29,10 +29,16 @@ export default function RootLayout({
               </div>
               <nav className="flex items-center gap-4">
                 <a
+                  href="/investigations/new"
+                  className="btn-primary hidden sm:inline-flex"
+                >
+                  New Investigation
+                </a>
+                <a
                   href="/investigations"
                   className="text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
-                  Investigations
+                  Cases
                 </a>
                 <a
                   href="/health"
