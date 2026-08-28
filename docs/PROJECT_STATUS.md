@@ -76,11 +76,21 @@ Last updated: 2026-08-28
 - Local startup: `uvicorn backend.app.main:app --reload`
 - API docs: http://localhost:8000/docs
 
-## Phase 7 — Frontend Dashboard (FUTURE)
+## Phase 7 — Frontend Dashboard ✅ SCAFFOLD COMPLETE
 
-- Next.js + React + Tailwind
-- Leaflet/MapLibre GIS interface
-- Investigator dashboard
+- Next.js 14 + React 18 + Tailwind CSS project scaffolded
+- TypeScript types matching API schemas (api.ts)
+- API client for backend integration (lib/api.ts)
+- Root layout with navigation header
+- Home page with API health check + status cards
+- Investigations list page (search, sort by date/amount/candidates)
+- Case detail page with model selection, top-K control, ranked candidates
+- Map placeholder component (Leaflet TBD)
+- Ranking table component
+- Health/status page
+- Build passes: `npm run build`
+- Type check passes: `npm run typecheck`
+- Frontend dev: `cd frontend && npm run dev`
 
 ## Phase 8 — Integration + Deployment (FUTURE)
 
@@ -99,7 +109,8 @@ Last updated: 2026-08-28
 | Transactions | 257 |
 | Locations | 44 |
 | Features | 47 |
-| Tests | 180 passing |
+| Tests | 181 passing (backend) |
+| Frontend | 4 pages, 2 components |
 | Python | 3.12 |
 | ML | scikit-learn 1.9 |
 | API | FastAPI 0.141 |

@@ -115,7 +115,20 @@ Evaluation Against Hidden Ground Truth
 - [x] Local startup: `uvicorn backend.app.main:app --reload`
 - [x] API docs: http://localhost:8000/docs
 
-### Phase 7 — Next.js/GIS Dashboard (Planned)
+### Phase 7 — Next.js/GIS Dashboard (Scaffold Complete)
+- [x] Next.js 14 + React 18 + Tailwind CSS project
+- [x] TypeScript types matching API schemas
+- [x] API client for backend integration
+- [x] Root layout with navigation
+- [x] Home page with API health status
+- [x] Investigations list page (search, sort, filter)
+- [x] Case detail page with candidate ranking
+- [x] Map component placeholder (Leaflet integration TBD)
+- [x] Ranking table component
+- [x] Health/status page
+- [ ] Leaflet/MapLibre GIS integration (TBD)
+- [ ] Real-time data refresh
+
 ### Phase 8 — Integration + Demo Hardening (Planned)
 
 ## Technology Stack
@@ -148,7 +161,25 @@ SENTINEL/
 │           ├── __init__.py
 │           ├── data_service.py    # Data loading + feature pipeline
 │           └── model_service.py   # Model training + scoring
-├── frontend/             # Next.js frontend (Phase 7+)
+├── frontend/
+│   ├── src/
+│   │   ├── app/                # Next.js App Router pages
+│   │   │   ├── layout.tsx      # Root layout with nav
+│   │   │   ├── page.tsx        # Home page
+│   │   │   ├── health/page.tsx # API status
+│   │   │   └── investigations/
+│   │   │       ├── page.tsx    # Case list
+│   │   │       └── [caseId]/page.tsx  # Case detail + ranking
+│   │   ├── components/
+│   │   │   ├── MapPlaceholder.tsx  # GIS map placeholder
+│   │   │   └── RankingTable.tsx    # Tabular ranking view
+│   │   ├── lib/
+│   │   │   └── api.ts          # API client
+│   │   └── types/
+│   │       └── api.ts          # TypeScript types
+│   ├── package.json
+│   ├── tailwind.config.ts
+│   └── next.config.js
 ├── src/
 │   ├── data_generation/  # Synthetic data generator + features
 │   │   ├── schema.py     # Pydantic models
@@ -168,7 +199,8 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # Phase 4 RF evaluation CLI
-├── tests/                # 180 tests
+├── tests/                # 180 tests (backend)
+├── frontend/             # 4 pages, 2 components
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md
 │   ├── DATA_LEAKAGE_POLICY.md
