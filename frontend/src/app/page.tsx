@@ -70,11 +70,25 @@ export default function HomePage() {
             View all 80 synthetic fraud cases and their candidate locations.
           </p>
         </a>
-        <div className="card opacity-50">
-          <h3 className="font-semibold text-gray-900">Analytics</h3>
+        <div className="card">
+          <h3 className="font-semibold text-gray-900">
+            Investigation Intelligence
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Model performance and scenario breakdown. Coming soon.
+            Rank plausible cash-out locations using evidence available at
+            complaint time.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+              80 Synthetic Cases
+            </span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+              47 Features
+            </span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+              2 Ranking Models
+            </span>
+          </div>
         </div>
       </div>
 
