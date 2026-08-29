@@ -66,8 +66,8 @@ pytest tests/test_leakage.py tests/test_audit_regression.py -v
 
 | Area | Owner |
 |------|-------|
-| Backend / Data / ML / Tests | Kalyan |
-| Frontend / Dashboard / Maps / UI | Bhupinder |
+| Backend / Data / ML / Tests | Guru sharan Kalyan |
+| Frontend / Dashboard / Maps / UI | Bhupinder Meena|
 | Research / Documentation / PPT / Demo | Other members |
 
 ## What NOT to Commit
