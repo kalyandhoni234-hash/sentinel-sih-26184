@@ -1,6 +1,6 @@
 # SENTINEL Project Status
 
-Last updated: 2026-08-28
+Last updated: 2026-09-05
 
 ## Phase 1 — Data Foundation ✅ COMPLETE
 
@@ -26,7 +26,7 @@ Last updated: 2026-08-28
 - Feature sanity report script
 - Case-level split preparation
 - Duplicate candidate bug fixed
-- 80 true positives = 80 cases
+- 300 true positives = 300 cases
 - 73 tests passing
 
 ## Phase 3 — Weighted Risk Baseline ✅ COMPLETE
@@ -52,7 +52,7 @@ Last updated: 2026-08-28
 - Reproducible evaluation script: scripts/run_rf_evaluation.py
 - 33 new Phase 4 tests (147 total)
 - RF evaluation report: docs/rf_evaluation.json
-- **Honest result: Weighted Baseline beats Random Forest on all 6 metrics**
+- **Honest result: Random Forest beats Weighted Baseline on 5/6 metrics (Top-1, Top-3, MRR, Mean Rank, Median Rank); Baseline wins Top-5 accuracy**
 - All data is SYNTHETIC — trained and evaluated on synthetic data only
 
 ## Phase 5 — Evaluation Framework (FUTURE)
@@ -105,9 +105,9 @@ Last updated: 2026-08-28
 
 | Metric | Value |
 |--------|-------|
-| Cases | 80 |
-| Accounts | 400 |
-| Transactions | 257 |
+| Cases | 300 |
+| Accounts | 1505 |
+| Transactions | 983 |
 | Locations | 44 |
 | Features | 47 |
 | Tests | 181 passing (backend) |
@@ -116,36 +116,36 @@ Last updated: 2026-08-28
 | ML | scikit-learn 1.9 |
 | API | FastAPI 0.141 |
 
-## Phase 3 Baseline Results (Test Set)
+## Phase 3 Baseline Results (Test Set — 60 cases)
 
 | Metric | Value |
 |--------|-------|
-| Top-1 Accuracy | 43.8% |
-| Top-3 Accuracy | 81.2% |
-| Top-5 Accuracy | 87.5% |
-| MRR | 0.6434 |
-| Mean Rank | 2.69 |
-| Median Rank | 2.0 |
+| Top-1 Accuracy | 15.0% |
+| Top-3 Accuracy | 48.3% |
+| Top-5 Accuracy | 75.0% |
+| MRR | 0.3793 |
+| Mean Rank | 4.68 |
+| Median Rank | 4.0 |
 
-## Phase 4 Random Forest Results (Test Set)
+## Phase 4 Random Forest Results (Test Set — 60 cases)
 
-| Metric | Value | vs Baseline |
-|--------|-------|-------------|
-| Top-1 Accuracy | 31.2% | -12.5% |
-| Top-3 Accuracy | 62.5% | -18.8% |
-| Top-5 Accuracy | 87.5% | +0.0% |
-| MRR | 0.5161 | -0.1273 |
-| Mean Rank | 3.19 | -0.50 |
-| Median Rank | 3.0 | -1.0 |
+| Metric | Value | vs Baseline | Note |
+|--------|-------|-------------|------|
+| Top-1 Accuracy | 21.7% | +6.7% | Higher is better |
+| Top-3 Accuracy | 53.3% | +5.0% | Higher is better |
+| Top-5 Accuracy | 71.7% | -3.3% | Higher is better |
+| MRR | 0.4231 | +0.0438 | Higher is better |
+| Mean Rank ↓ | 4.27 | 4.68 → 4.27 | Lower is better |
+| Median Rank ↓ | 3.0 | 4.0 → 3.0 | Lower is better |
 
-**Overall winner: Weighted Baseline (6/6 metrics)**
+**Overall winner: Random Forest (5/6 metrics)**
 
 ## Feature Group Importance (Random Forest)
 
 | Group | Importance |
 |-------|------------|
-| Geographic | 56.9% |
-| Transaction | 19.2% |
-| Location | 9.9% |
-| Temporal | 8.2% |
-| Case | 6.0% |
+| Geographic | 49.2% |
+| Transaction | 22.3% |
+| Temporal | 10.8% |
+| Location | 10.3% |
+| Case | 7.4% |

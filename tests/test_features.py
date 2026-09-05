@@ -392,7 +392,7 @@ class TestCaseLevelSplit:
         """Feature matrix should have well-defined case IDs."""
         matrix, _ = _build_matrix_with_raw_data()
         case_ids = {r["case_id"] for r in matrix}
-        assert len(case_ids) == 80  # all 80 cases present
+        assert len(case_ids) == 300  # all 300 cases present
 
     def test_candidate_rows_inherit_case_identity(self):
         """Each candidate row should carry its case_id for split purposes."""

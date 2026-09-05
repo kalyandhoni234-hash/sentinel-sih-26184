@@ -36,8 +36,8 @@ SENTINEL is an investigator decision-support system that analyzes synthetic inve
 - Real temporal features (complaint delay, velocity, inter-arrival)
 - Missing value policy (sentinel -1.0 for no pre-complaint TX)
 - Feature sanity report script
-- Case-level split preparation (64 train / 16 test)
-- Duplicate candidate bug fixed (80 TPs = 80 cases)
+- Case-level split preparation (240 train / 60 test)
+- Duplicate candidate bug fixed (300 TPs = 300 cases)
 - 73 tests passing
 
 ### Phase 3 — Weighted Risk Baseline ✅
@@ -50,7 +50,7 @@ SENTINEL is an investigator decision-support system that analyzes synthetic inve
 ### Phase 4 — Random Forest ✅
 - RandomForestClassifier (200 trees, balanced class weights, random_state=42)
 - Case-level split enforcement (no case in both train and test)
-- Honest comparison: Weighted Baseline wins 6/6 metrics
+- Honest comparison: Random Forest wins 5/6 metrics (Top-5 accuracy goes to Baseline)
 - 33 new Phase 4 tests
 
 ### Phase 6 — FastAPI Backend ✅
@@ -165,4 +165,4 @@ SENTINEL/
 
 ## License
 
-Internal use only — SIH 2026 Hackathon.
+[MIT License](LICENSE) — SIH 2026 Hackathon.

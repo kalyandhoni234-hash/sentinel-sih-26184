@@ -72,10 +72,10 @@ class TestListInvestigations:
         assert response.status_code == 200
 
     def test_list_returns_all_cases(self, client):
-        """Should return all 80 cases."""
+        """Should return all 300 cases."""
         data = client.get("/api/v1/investigations").json()
-        assert data["total"] == 80
-        assert len(data["investigations"]) == 80
+        assert data["total"] == 300
+        assert len(data["investigations"]) == 300
 
     def test_list_case_schema(self, client):
         """Each investigation should have required fields."""

@@ -13,12 +13,14 @@ from pathlib import Path
 def _parse_cors_origins() -> list[str]:
     """Parse CORS_ORIGINS from environment variable.
 
-    Accepts comma-separated origins. Defaults to localhost for development.
+    Accepts comma-separated origins. Defaults to localhost for development
+    and the production Vercel frontend.
     """
     raw = os.getenv("CORS_ORIGINS", "")
     if raw:
         return [origin.strip() for origin in raw.split(",") if origin.strip()]
     return [
+        "https://frontend-i6uq-mhy5-kalyandhoni234-hash-projects.vercel.app",
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
