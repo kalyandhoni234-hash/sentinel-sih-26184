@@ -158,10 +158,10 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
             s["model_used"] = "weighted_baseline"
     elif request.model == ModelType.RANDOM_FOREST:
         scored = ms.score_random_forest(feature_rows)
-        # Add explanations
+        # Attach observable evidence signals. These are not RF local attributions.
         for i, s in enumerate(scored):
             feat_row = feature_rows[i] if i < len(feature_rows) else {}
-            s["explanation"] = ms.explain_rf_candidate(feat_row)
+            s["explanation"] = ms.describe_rf_evidence_signals(feat_row)
             s["group_scores"] = None
             s["model_used"] = "random_forest"
             s["risk_score"] = s.pop("rf_score")

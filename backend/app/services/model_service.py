@@ -5,6 +5,18 @@ Wraps the existing Phase 3 baseline and Phase 4 Random Forest implementations.
 Keeps trained models in memory for the application lifetime.
 
 No ground-truth or Layer-C information is used during scoring.
+
+Explanation terminology:
+    The Random Forest (RF) model is a black-box ensemble. Its score for a
+    candidate is derived from the votes of many decision trees, and there is
+    NO exact local feature-attribution method wired into this service.
+    The text returned for RF-scored candidates is therefore a deterministic
+    summary of OBSERVABLE evidence signals (e.g. same metro, close to
+    origin, cash-out friendly type). It must NOT be read as
+    "the Random Forest decided this because X". The baseline model's
+    "High score because of: ..." wording is accurate because the baseline
+    is a transparent weighted formula whose group contributions directly
+    drive the score.
 """
 
 from __future__ import annotations
@@ -99,20 +111,31 @@ class ModelService:
         """
         return explain_candidate(scored_candidate, feature_row)
 
-    def explain_rf_candidate(
+    def describe_rf_evidence_signals(
         self,
         feature_row: dict[str, Any],
     ) -> str:
-        """Generate explanation for an RF-scored candidate.
+        """Describe observable evidence signals for an RF-scored candidate.
 
-        Uses observable feature values to produce a human-readable explanation.
-        Does NOT reference ground truth information.
+        The Random Forest model is a black-box ensemble. Its probability
+        output for a candidate is the aggregate of many decision-tree votes,
+        and this service does NOT compute a local attribution (e.g. SHAP,
+        tree interpreter). The text returned here is a deterministic summary
+        of query-time feature values associated with the candidate.
+
+        It must NEVER be interpreted as "the Random Forest reasoned that X".
+        It is a list of observable evidence signals that the candidate
+        exhibits — useful to an investigator, but not a faithful local
+        explanation of the RF model's internal scoring path.
+
+        The returned string is prefixed with "Supporting evidence signals:"
+        so the API and UI surface cannot accidentally claim RF attribution.
 
         Args:
             feature_row: The original feature row.
 
         Returns:
-            Human-readable explanation string.
+            Human-readable supporting-evidence summary.
         """
         reasons = []
 
@@ -153,6 +176,6 @@ class ModelService:
             reasons.append("high foot-traffic area")
 
         if not reasons:
-            reasons = ["scored by Random Forest model based on feature patterns"]
+            reasons = ["no prominent observable evidence signals"]
 
-        return f"Risk indicators: {', '.join(reasons)}."
+        return f"Supporting evidence signals: {', '.join(reasons)}."

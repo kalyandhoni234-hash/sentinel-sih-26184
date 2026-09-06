@@ -6,12 +6,18 @@ import type { HealthResponse } from "@/types/api";
 
 export default function HomePage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [caseCount, setCaseCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
       .getHealth()
       .then(setHealth)
+      .catch((err) => setError(err.message));
+
+    api
+      .listInvestigations()
+      .then((data) => setCaseCount(data.total))
       .catch((err) => setError(err.message));
   }, []);
 
@@ -67,7 +73,8 @@ export default function HomePage() {
         <a href="/investigations" className="card hover:border-sentinel-300 transition-colors">
           <h3 className="font-semibold text-gray-900">All Cases</h3>
           <p className="mt-1 text-sm text-gray-500">
-            View all 80 synthetic fraud cases and their candidate locations.
+            View all {caseCount ?? "available"} synthetic fraud cases and their
+            candidate locations.
           </p>
         </a>
         <div className="card">
@@ -80,7 +87,7 @@ export default function HomePage() {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-              80 Synthetic Cases
+              {caseCount === null ? "Loading case count..." : `${caseCount} Synthetic Cases`}
             </span>
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
               47 Features

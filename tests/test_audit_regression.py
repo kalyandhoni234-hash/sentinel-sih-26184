@@ -196,17 +196,47 @@ def test_no_duplicate_candidate_pairs():
     assert len(dupes) == 0, f"Duplicate candidate pairs found: {dupes}"
 
 
-def test_true_positive_count_equals_case_count():
-    """Number of true-positive candidate rows must equal number of cases.
+def test_true_positive_count_equals_or_less_than_case_count():
+    """TP candidate rows must be <= number of cases.
 
-    Each case has exactly one ground truth location, and that location
-    must appear exactly once in the candidate set.
+    Each case has exactly one ground truth location. With target-independent
+    candidate generation (P0 audit fix), the true location appears in the
+    candidate set only when it is independently sampled by the evidence-based
+    rules. The TP count therefore must be <= the case count.
+
+    This test replaces the previous (leaky) assertion that TP count must
+    equal case count, which required the true location to be force-inserted.
     """
     result = generate_dataset(seed=42)
     cands = _load_generated(result["output_dir"], "candidates.jsonl")
     gts = _load_eval(result["output_dir"], "ground_truth.jsonl")
 
     gt_map = {g["case_id"]: g["actual_cashout_location_id"] for g in gts}
-    tp_count = sum(1 for c in cands if gt_map.get(c["case_id"]) == c["location_id"])
 
-    assert tp_count == len(gts), f"TP count ({tp_count}) != case count ({len(gts)})"
+    # TPs are only counted in memory (is_true_location); model-visible
+    # candidates.jsonl does not carry the flag. We re-derive the label
+    # locally for this verification.
+    from src.data_generation.candidates import label_candidates_with_ground_truth
+    from src.data_generation.schema import Candidate
+
+    cands_models = []
+    for c in cands:
+        cands_models.append(
+            Candidate(
+                case_id=c["case_id"],
+                location_id=c["location_id"],
+                distance_from_origin_km=c["distance_from_origin_km"],
+                scenario_affinity=c["scenario_affinity"],
+                transaction_proximity_score=c["transaction_proximity_score"],
+                temporal_plausibility=c["temporal_plausibility"],
+                density_score=c["density_score"],
+                is_true_location=False,
+            )
+        )
+    label_candidates_with_ground_truth(cands_models, gt_map)
+    tp_count = sum(1 for c in cands_models if c.is_true_location)
+
+    assert tp_count <= len(gts), (
+        f"TP count ({tp_count}) > case count ({len(gts)}); "
+        f"true location appears multiple times or model-visible output leaks the flag"
+    )

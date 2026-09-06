@@ -93,7 +93,7 @@ Evaluation Against Hidden Ground Truth
 - [x] Comparison framework (baseline vs RF)
 - [x] Reproducible evaluation script (run_rf_evaluation.py)
 - [x] 33 new Phase 4 tests (147 total)
-- [x] Honest comparison: Weighted Baseline wins 6/6 metrics
+- [x] Honest comparison: Random Forest wins 5/6 metrics (Top-5 accuracy goes to Baseline)
 - [x] All data is SYNTHETIC
 
 ### Phase 5 — Evaluation (Planned)
@@ -135,10 +135,10 @@ Evaluation Against Hidden Ground Truth
 |-------|------------|
 | Backend | Python, FastAPI |
 | ML | scikit-learn, Random Forest |
-| Database | PostgreSQL / Supabase |
+| Database | *(Planned)* PostgreSQL / Supabase |
 | Frontend | Next.js, React, Tailwind CSS |
 | GIS | Leaflet / MapLibre |
-| Deployment | Render, Vercel, Supabase |
+| Deployment | *(Planned)* Render, Vercel, Supabase |
 | Testing | pytest |
 
 ## Directory Structure
@@ -198,7 +198,7 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # Phase 4 RF evaluation CLI
-├── tests/                # 181 tests (backend)
+├── tests/                # 203 tests (backend)
 ├── frontend/             # 4 pages, 2 components (Leaflet GIS)
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md

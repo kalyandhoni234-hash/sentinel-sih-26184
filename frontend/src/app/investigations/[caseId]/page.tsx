@@ -83,7 +83,14 @@ function CandidateCard({
         <RiskBar score={candidate.risk_score} />
       </div>
 
-      <p className="mt-3 text-sm text-gray-600">{candidate.explanation}</p>
+      <div className="mt-3">
+        {candidate.model_used === "random_forest" && (
+          <p className="text-xs font-medium text-gray-500">
+            Supporting Evidence Signals
+          </p>
+        )}
+        <p className="text-sm text-gray-600">{candidate.explanation}</p>
+      </div>
 
       {candidate.group_scores && (
         <div className="mt-3">

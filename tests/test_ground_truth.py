@@ -29,7 +29,14 @@ def test_ground_truth_exists_for_every_case():
 
 
 def test_true_location_in_candidate_set():
-    """Verify every ground truth location appears in the candidate set."""
+    """Verify every ground truth location appears in the candidate set WHEN
+    it happens to be sampled by the evidence-based candidate generation.
+
+    NOTE: After the P0 audit fix, candidate generation is target-independent,
+    so the true location may or may not be in the candidate set. When it IS
+    in the set, the is_true_location flag (carried in memory, stripped from
+    model-visible output) must be True.
+    """
     result = generate_dataset(seed=42)
 
     import json
@@ -50,9 +57,39 @@ def test_true_location_in_candidate_set():
             c = json.loads(line)
             cand_case_locations.setdefault(c["case_id"], set()).add(c["location_id"])
 
-    for cid, true_loc_id in gt_map.items():
+    # Every case must have candidates
+    for cid in gt_map:
         assert cid in cand_case_locations, f"Case {cid} has no candidates"
-        assert true_loc_id in cand_case_locations[cid], f"Case {cid}: true location {true_loc_id} not in candidate set"
+
+    # When the true location happens to be in the candidate set, the
+    # is_true_location flag must have been set correctly. We re-load the
+    # ground truth + candidate dicts (with the flag) for this check.
+    from src.data_generation.candidates import label_candidates_with_ground_truth
+    from src.data_generation.schema import Candidate
+
+    cands_raw = []
+    with open(cands_path) as f:
+        for line in f:
+            d = json.loads(line)
+            cands_raw.append(
+                Candidate(
+                    case_id=d["case_id"],
+                    location_id=d["location_id"],
+                    distance_from_origin_km=d["distance_from_origin_km"],
+                    scenario_affinity=d["scenario_affinity"],
+                    transaction_proximity_score=d["transaction_proximity_score"],
+                    temporal_plausibility=d["temporal_plausibility"],
+                    density_score=d["density_score"],
+                    is_true_location=False,
+                )
+            )
+    label_candidates_with_ground_truth(cands_raw, gt_map)
+
+    for cand in cands_raw:
+        if cand.is_true_location:
+            assert cand.location_id == gt_map.get(cand.case_id), (
+                f"Candidate for {cand.case_id} marked true but doesn't match ground truth"
+            )
 
 
 def test_ground_truth_is_not_in_model_visible_data():

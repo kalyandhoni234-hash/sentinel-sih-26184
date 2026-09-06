@@ -37,7 +37,7 @@ SENTINEL is an investigator decision-support system that analyzes synthetic inve
 - Missing value policy (sentinel -1.0 for no pre-complaint TX)
 - Feature sanity report script
 - Case-level split preparation (240 train / 60 test)
-- Duplicate candidate bug fixed (300 TPs = 300 cases)
+- Duplicate candidate bug fixed (300 cases, target-independent candidate generation)
 - 73 tests passing
 
 ### Phase 3 — Weighted Risk Baseline ✅
@@ -103,7 +103,7 @@ python scripts/feature_report.py
 ### Run Tests
 
 ```bash
-# All 181 tests
+# All 203 tests
 pytest -q
 
 # Feature tests only
@@ -158,7 +158,7 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # RF evaluation CLI
-├── tests/                # 181 tests
+├── tests/                # 203 tests
 ├── docs/                 # Documentation
 └── pyproject.toml
 ```

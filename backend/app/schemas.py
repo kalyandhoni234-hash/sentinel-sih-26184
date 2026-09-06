@@ -92,7 +92,10 @@ class RankedCandidate(BaseModel):
     model_used: str = Field(..., description="Model used for scoring")
     explanation: str = Field(
         default="",
-        description="Human-readable explanation of why this candidate scored highly",
+        description=(
+            "Human-readable supporting evidence signals associated with the candidate. "
+            "For Random Forest results, this is not an exact local model attribution."
+        ),
     )
     group_scores: dict[str, float] | None = Field(
         default=None,

@@ -13,7 +13,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from .candidates import generate_candidates_for_case
+from .candidates import (
+    generate_candidates_for_case,
+    label_candidates_with_ground_truth,
+)
 from .config import load_config
 from .ground_truth import generate_ground_truth
 from .locations import generate_locations
@@ -172,6 +175,9 @@ def generate_dataset(
     logger.info(f"Generated {len(transactions)} transactions across {len(flat_accounts)} accounts")
 
     # Step 4: Generate ground truth (evaluation only)
+    # IMPORTANT: ground truth exists at this point but is NOT consumed during
+    # candidate generation. Candidate generation must use observable evidence
+    # only and is forbidden from reading this data.
     ground_truths = []
     for case in cases:
         case_txs = [tx for tx in transactions if tx.case_id == case.case_id]
@@ -179,13 +185,24 @@ def generate_dataset(
         ground_truths.append(gt)
     logger.info(f"Generated {len(ground_truths)} ground truth entries")
 
-    # Step 5: Generate candidates
+    # Step 5: Generate candidates WITHOUT accessing ground truth.
+    # Candidate generation receives the case, the case's transactions (as
+    # observable evidence), the full location pool, and config/RNG. It does
+    # NOT receive the hidden ground truth.
     candidates = []
     candidate_config = config.get("candidates", {})
     for case in cases:
-        gt = next(gt for gt in ground_truths if gt.case_id == case.case_id)
-        case_cands = generate_candidates_for_case(case, gt, locations, candidate_config, rng)
+        case_txs = [tx for tx in transactions if tx.case_id == case.case_id]
+        case_cands = generate_candidates_for_case(
+            case, case_txs, locations, candidate_config, rng
+        )
         candidates.extend(case_cands)
+
+    # Step 5b: Attach is_true_location flag using ground truth (post-generation).
+    # This is the ONLY place where ground truth is used to mark candidates,
+    # and the flag is stripped from model-visible output below.
+    gt_by_case = {gt.case_id: gt.actual_cashout_location_id for gt in ground_truths}
+    label_candidates_with_ground_truth(candidates, gt_by_case)
     logger.info(f"Generated {len(candidates)} candidates across {len(cases)} cases")
 
     # Step 6: Build manifest

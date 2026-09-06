@@ -294,6 +294,18 @@ class TestRandomForestRanking:
         for cand in data["ranked_candidates"]:
             assert cand["location"] is not None
 
+    def test_rf_explanations_are_labeled_as_supporting_evidence(self, client):
+        """RF text must not be presented as an exact local model attribution."""
+        data = client.post(
+            "/api/v1/investigations/CASE_0001/rank",
+            json={"model": "random_forest"},
+        ).json()
+        for cand in data["ranked_candidates"]:
+            explanation = cand["explanation"].lower()
+            assert explanation.startswith("supporting evidence signals:")
+            assert "random forest reasoning" not in explanation
+            assert "exact model reasoning" not in explanation
+
 
 # ---------------------------------------------------------------------------
 # Error handling tests

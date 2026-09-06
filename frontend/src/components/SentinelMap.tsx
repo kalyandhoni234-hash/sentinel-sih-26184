@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
   useMap,
+  useMapEvents,
   ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
@@ -177,11 +178,31 @@ function MapLegend() {
   );
 }
 
+function TileErrorDetector({ onTileError }: { onTileError: () => void }) {
+  useMapEvents({
+    tileerror: () => {
+      onTileError();
+    },
+  });
+  return null;
+}
+
+function TileErrorBanner({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 shadow-sm text-xs text-yellow-800 max-w-xs text-center">
+      Map tiles could not be loaded. Candidate rankings and location data are
+      shown below the map.
+    </div>
+  );
+}
+
 function MapInner({
   caseInfo,
   candidates,
   highlightedId,
-}: SentinelMapProps) {
+  onTileError,
+}: SentinelMapProps & { onTileError: () => void }) {
   const originPosition: L.LatLngExpression | null =
     caseInfo.origin_latitude != null && caseInfo.origin_longitude != null
       ? [caseInfo.origin_latitude, caseInfo.origin_longitude]
@@ -199,6 +220,7 @@ function MapInner({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <TileErrorDetector onTileError={onTileError} />
       <FitBounds caseInfo={caseInfo} candidates={candidates} />
       <HighlightHandler
         highlightedId={highlightedId}
@@ -259,10 +281,16 @@ function MapInner({
 
 export function SentinelMap(props: SentinelMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const [tileError, setTileError] = useState(false);
+
+  const handleTileError = useCallback(() => {
+    setTileError(true);
+  }, []);
 
   return (
     <div ref={mapRef} className="relative" style={{ height: 480 }}>
-      <MapInner {...props} />
+      <MapInner {...props} onTileError={handleTileError} />
+      <TileErrorBanner visible={tileError} />
     </div>
   );
 }

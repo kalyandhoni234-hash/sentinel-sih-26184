@@ -25,8 +25,7 @@ Last updated: 2026-09-05
 - Missing value policy (sentinel -1.0)
 - Feature sanity report script
 - Case-level split preparation
-- Duplicate candidate bug fixed
-- 300 true positives = 300 cases
+- Duplicate candidate bug fixed (300 cases, target-independent candidate generation; ~37% true-location coverage)
 - 73 tests passing
 
 ## Phase 3 — Weighted Risk Baseline ✅ COMPLETE
@@ -72,7 +71,7 @@ Last updated: 2026-09-05
 - Human-readable candidate explanations
 - Location info for map/UI display (lat, lng, metro, region, type)
 - Investigator decision-support language (no "prediction" claims)
-- 33 new API tests (180 total)
+- 33 new API tests (181 total)
 - Local startup: `uvicorn backend.app.main:app --reload`
 - API docs: http://localhost:8000/docs
 

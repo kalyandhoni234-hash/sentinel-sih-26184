@@ -197,15 +197,28 @@ class DataValidator:
                 self.errors.append(f"Case {case.case_id}: missing ground truth")
 
     def _check_ground_truth_isolation(self) -> None:
-        """Verify the true location is present in the candidate set."""
+        """Verify the is_true_location flag is not exposed via model-visible path.
+
+        NOTE: This check no longer requires the true location to be present
+        in the candidate set. Candidate generation is target-independent by
+        design (audit fix), so some cases may not contain their true location
+        in the candidate set. When the true location IS in the set, the
+        is_true_location flag must be set to True (used for evaluation only
+        and stripped from model-visible output).
+        """
+        # When the true location appears in the candidate set, the label
+        # step must have flagged it. We verify that, but we do NOT require
+        # the true location to be present (that would re-introduce target
+        # leakage into candidate generation).
         for gt in self.ground_truths:
-            matching_candidates = [
-                c for c in self.candidates if c.case_id == gt.case_id and c.location_id == gt.actual_cashout_location_id
-            ]
-            if not matching_candidates:
-                self.errors.append(
-                    f"Case {gt.case_id}: true location {gt.actual_cashout_location_id} not in candidate set"
-                )
+            for c in self.candidates:
+                if c.case_id == gt.case_id and c.location_id == gt.actual_cashout_location_id:
+                    if not c.is_true_location:
+                        self.errors.append(
+                            f"Case {gt.case_id}: true location present in candidate set "
+                            f"but is_true_location flag is False (labeling step missed it)"
+                        )
+                    break
 
     def _check_manifest_consistency(self) -> None:
         """Verify manifest counts match actual data."""
