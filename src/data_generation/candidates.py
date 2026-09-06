@@ -29,7 +29,6 @@ from typing import Any
 from .locations import compute_distance_km, find_nearest_locations
 from .schema import Candidate, Case, Location, Transaction
 
-
 # ---------------------------------------------------------------------------
 # Observable-evidence scoring helpers
 # ---------------------------------------------------------------------------
@@ -135,7 +134,7 @@ def _derive_evidence_anchor(
         in_receiver_metro = [loc for loc in locations if loc.metro == last_tx.receiver_metro]
         if in_receiver_metro:
             # Deterministic-ish pick: the highest cash-out attractiveness in that metro.
-            return max(in_receiver_metro, key=lambda l: l.cash_out_attractiveness)
+            return max(in_receiver_metro, key=lambda location: location.cash_out_attractiveness)
 
     return next(
         (loc for loc in locations if loc.location_id == case.origin_location_id),

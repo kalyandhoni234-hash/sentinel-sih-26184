@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import inspect
 import random
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -28,12 +29,9 @@ from src.data_generation.schema import (
     Case,
     FraudScenario,
     Location,
-    LocationType,
     Transaction,
     TransactionType,
 )
-from datetime import datetime, timedelta
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -187,14 +185,13 @@ def test_candidate_set_invariant_to_ground_truth(case, case_txs, locations):
     # And re-generate with a totally different seed: still deterministic
     # relative to (case, transactions, locations, config, seed) only.
     rng_c = random.Random(999)
-    cands_c = generate_candidates_for_case(
+    generate_candidates_for_case(
         case=case,
         case_transactions=case_txs,
         locations=locations,
         candidate_config=cfg,
         rng=rng_c,
     )
-    sig_c = sorted((c.location_id, round(c.distance_from_origin_km, 4)) for c in cands_c)
     # With a different seed, the set MAY differ (this is allowed). What matters
     # is that no candidate-set location was selected because of a hidden target.
     # We verify this by inspecting each candidate below (test_no_target_injected).
@@ -407,11 +404,11 @@ def test_generator_pipeline_does_not_pass_ground_truth_to_candidates():
 
 def test_generator_emits_ground_truth_separately():
     """End-to-end: ground truth files exist ONLY in evaluation/ directory."""
-    from src.data_generation.generator import generate_dataset
-
-    import tempfile
     import json
+    import tempfile
     from pathlib import Path
+
+    from src.data_generation.generator import generate_dataset
 
     with tempfile.TemporaryDirectory() as tmp:
         result = generate_dataset(output_dir=tmp, seed=42)

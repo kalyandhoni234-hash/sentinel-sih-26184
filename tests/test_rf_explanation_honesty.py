@@ -16,12 +16,10 @@ exercise the live API + service to guarantee the contract holds.
 from __future__ import annotations
 
 import inspect
-import re
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = REPO_ROOT / "backend"
@@ -152,9 +150,9 @@ def test_rank_response_schema_describes_explanation_honestly():
 def client():
     """Build a FastAPI test client with real services initialised."""
     from backend.app.main import app
+    from backend.app.routes.investigations import init_services
     from backend.app.services.data_service import DataService
     from backend.app.services.model_service import ModelService
-    from backend.app.routes.investigations import init_services
 
     ds = DataService(seed=42)
     ds.load()
