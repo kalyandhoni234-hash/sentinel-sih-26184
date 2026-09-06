@@ -132,9 +132,7 @@ def _derive_evidence_anchor(
         last_tx = max(pre_complaint, key=lambda t: t.timestamp)
         # The receiver metro is observable, but exact receiver location is not.
         # Use any known location in that metro as the observable anchor.
-        in_receiver_metro = [
-            loc for loc in locations if loc.metro == last_tx.receiver_metro
-        ]
+        in_receiver_metro = [loc for loc in locations if loc.metro == last_tx.receiver_metro]
         if in_receiver_metro:
             # Deterministic-ish pick: the highest cash-out attractiveness in that metro.
             return max(in_receiver_metro, key=lambda l: l.cash_out_attractiveness)
@@ -185,16 +183,12 @@ def _generate_hard_negatives(
 
     hard_negatives: list[Location] = []
     origin_metro = case.origin_metro
-    same_metro = [
-        loc for loc in locations if loc.metro == origin_metro and loc != evidence_anchor
-    ]
+    same_metro = [loc for loc in locations if loc.metro == origin_metro and loc != evidence_anchor]
     diff_metro = [loc for loc in locations if loc.metro not in evidence_metros]
 
     # Type 1: Geographically close to evidence anchor but different type
     if evidence_anchor is not None:
-        nearby = find_nearest_locations(
-            evidence_anchor.latitude, evidence_anchor.longitude, locations, k=15
-        )
+        nearby = find_nearest_locations(evidence_anchor.latitude, evidence_anchor.longitude, locations, k=15)
         close_wrong_type = [
             loc
             for loc, dist in nearby
@@ -241,9 +235,7 @@ def _generate_hard_negatives(
 
     # Type 4: Good cash-out type fit in a different (non-observable) metro
     type_match_diff = [
-        loc
-        for loc in diff_metro
-        if loc.location_type.value in ("ATM", "BANK_BRANCH", "MONEY_TRANSFER_AGENT")
+        loc for loc in diff_metro if loc.location_type.value in ("ATM", "BANK_BRANCH", "MONEY_TRANSFER_AGENT")
     ]
     hard_negatives.extend(
         rng.sample(
@@ -316,9 +308,7 @@ def generate_candidates_for_case(
 
     # 1. Hard negatives (drawn from observable evidence, no target access)
     hard_neg_count = min(target_count // 2, 8)
-    hard_negatives = _generate_hard_negatives(
-        case, locations, evidence_anchor, evidence_metros, rng, hard_neg_count
-    )
+    hard_negatives = _generate_hard_negatives(case, locations, evidence_anchor, evidence_metros, rng, hard_neg_count)
     for loc in hard_negatives:
         if loc.location_id in used_location_ids:
             continue
@@ -337,9 +327,7 @@ def generate_candidates_for_case(
                 distance_from_origin_km=round(dist, 2),
                 scenario_affinity=round(_compute_scenario_affinity(case, loc), 4),
                 transaction_proximity_score=round(
-                    _compute_transaction_proximity_score(
-                        case, loc, locations, evidence_anchor
-                    ),
+                    _compute_transaction_proximity_score(case, loc, locations, evidence_anchor),
                     4,
                 ),
                 temporal_plausibility=round(_compute_temporal_plausibility(case, loc), 4),
@@ -374,9 +362,7 @@ def generate_candidates_for_case(
                     distance_from_origin_km=round(dist, 2),
                     scenario_affinity=round(_compute_scenario_affinity(case, loc), 4),
                     transaction_proximity_score=round(
-                        _compute_transaction_proximity_score(
-                            case, loc, locations, evidence_anchor
-                        ),
+                        _compute_transaction_proximity_score(case, loc, locations, evidence_anchor),
                         4,
                     ),
                     temporal_plausibility=round(_compute_temporal_plausibility(case, loc), 4),

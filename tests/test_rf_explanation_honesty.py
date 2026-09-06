@@ -62,9 +62,7 @@ def test_model_service_docstring_documents_rf_term_contract():
 
     src = inspect.getsource(model_service)
     for phrase in SAFE_RF_PHRASES:
-        assert phrase in src.lower(), (
-            f"backend/app/services/model_service.py does not mention '{phrase}'"
-        )
+        assert phrase in src.lower(), f"backend/app/services/model_service.py does not mention '{phrase}'"
     # Must NOT be silent on the no-attribution rule
     assert "not" in src.lower() and ("attribution" in src.lower() or "reasoning" in src.lower()), (
         "model_service.py must explicitly disclaim RF local attribution"
@@ -123,9 +121,7 @@ def test_describe_rf_evidence_signals_avoids_forbidden_phrases():
     }
     out = ms.describe_rf_evidence_signals(feature_row).lower()
     for phrase in FORBIDDEN_RF_PHRASES:
-        assert phrase not in out, (
-            f"RF evidence description contains forbidden phrase '{phrase}': {out}"
-        )
+        assert phrase not in out, f"RF evidence description contains forbidden phrase '{phrase}': {out}"
 
 
 # ---------------------------------------------------------------------------
@@ -144,10 +140,7 @@ def test_rank_response_schema_describes_explanation_honestly():
     assert "supporting evidence signals" in desc
     assert "not an exact local model attribution" in desc or "not" in desc
     for phrase in FORBIDDEN_RF_PHRASES:
-        assert phrase not in desc, (
-            f"Schema description for 'explanation' contains forbidden phrase "
-            f"'{phrase}': {desc}"
-        )
+        assert phrase not in desc, f"Schema description for 'explanation' contains forbidden phrase '{phrase}': {desc}"
 
 
 # ---------------------------------------------------------------------------
@@ -186,9 +179,7 @@ def test_api_rf_explanations_use_safe_prefix(client):
             f"RF candidate explanation does not start with safe prefix: {cand['explanation']!r}"
         )
         for phrase in FORBIDDEN_RF_PHRASES:
-            assert phrase not in text, (
-                f"Live RF explanation contains forbidden phrase '{phrase}': {text}"
-            )
+            assert phrase not in text, f"Live RF explanation contains forbidden phrase '{phrase}': {text}"
 
 
 def test_api_baseline_explanations_distinct_from_rf(client):
@@ -250,8 +241,7 @@ def test_frontend_uses_safe_label_for_rf():
         if phrase in lowered:
             # Permitted only if it appears in a context denying the claim.
             assert "not" in lowered or "no " in lowered, (
-                f"Frontend detail page contains forbidden phrase '{phrase}' "
-                f"without an explicit disclaimer"
+                f"Frontend detail page contains forbidden phrase '{phrase}' without an explicit disclaimer"
             )
 
 

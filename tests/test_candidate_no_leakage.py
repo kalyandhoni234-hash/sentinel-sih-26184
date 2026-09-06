@@ -122,10 +122,7 @@ def test_generate_candidates_signature_has_no_ground_truth_param():
     params = list(sig.parameters.keys())
     forbidden = {"true_ground_truth", "ground_truth", "gt", "true_location", "target"}
     leaked = [p for p in params if p.lower() in forbidden]
-    assert not leaked, (
-        f"generate_candidates_for_case accepts ground-truth parameter(s): {leaked}. "
-        f"Signature: {params}"
-    )
+    assert not leaked, f"generate_candidates_for_case accepts ground-truth parameter(s): {leaked}. Signature: {params}"
 
 
 def test_generate_candidates_can_run_without_ground_truth(case, case_txs, locations):
@@ -143,8 +140,7 @@ def test_generate_candidates_can_run_without_ground_truth(case, case_txs, locati
     )
 
     assert len(candidates) >= 5, (
-        f"Candidate generation produced only {len(candidates)} candidates "
-        f"when called without ground truth"
+        f"Candidate generation produced only {len(candidates)} candidates when called without ground truth"
     )
     # All candidates must reference the case
     for cand in candidates:
@@ -266,8 +262,7 @@ def test_origin_location_not_force_inserted_either(case, case_txs, locations):
 
     # Origin has ~22 locations pool, 10-18 candidates => ~50-80% expected.
     assert appearances < total_runs, (
-        f"Origin location appeared in every candidate set ({appearances}/{total_runs}); "
-        f"force-insertion detected."
+        f"Origin location appeared in every candidate set ({appearances}/{total_runs}); force-insertion detected."
     )
 
 
@@ -279,6 +274,7 @@ def test_origin_location_not_force_inserted_either(case, case_txs, locations):
 def test_no_target_distance_in_candidates_module():
     """The candidates module must not reference a target distance concept."""
     import src.data_generation.candidates as cand_module
+
     src = inspect.getsource(cand_module)
     forbidden = [
         "true_location.latitude",
@@ -288,9 +284,7 @@ def test_no_target_distance_in_candidates_module():
         "target.longitude",
     ]
     for pattern in forbidden:
-        assert pattern not in src, (
-            f"candidates.py still references '{pattern}' — target leakage remains."
-        )
+        assert pattern not in src, f"candidates.py still references '{pattern}' — target leakage remains."
 
 
 def test_hard_negatives_use_observable_anchor(case, case_txs, locations):
@@ -325,6 +319,7 @@ def test_label_step_is_separate_from_generation(case, case_txs, locations):
     """The labelling step is a separate function and never invoked inside
     generate_candidates_for_case."""
     import src.data_generation.candidates as cand_module
+
     src = inspect.getsource(cand_module)
     assert "label_candidates_with_ground_truth" in src, (
         "label_candidates_with_ground_truth must be defined in candidates module"
@@ -334,6 +329,7 @@ def test_label_step_is_separate_from_generation(case, case_txs, locations):
     gen_src = inspect.getsource(generate_candidates_for_case)
     # Strip docstrings before checking
     import ast
+
     tree = ast.parse(gen_src)
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -350,13 +346,11 @@ def test_label_step_is_separate_from_generation(case, case_txs, locations):
                 if isinstance(sub, ast.Call):
                     if isinstance(sub.func, ast.Name) and sub.func.id == "label_candidates_with_ground_truth":
                         raise AssertionError(
-                            "generate_candidates_for_case must not call "
-                            "label_candidates_with_ground_truth"
+                            "generate_candidates_for_case must not call label_candidates_with_ground_truth"
                         )
                     if isinstance(sub.func, ast.Attribute) and sub.func.attr == "label_candidates_with_ground_truth":
                         raise AssertionError(
-                            "generate_candidates_for_case must not call "
-                            "label_candidates_with_ground_truth"
+                            "generate_candidates_for_case must not call label_candidates_with_ground_truth"
                         )
 
 
@@ -378,15 +372,11 @@ def test_label_step_only_marks_when_location_matches(case, case_txs, locations):
 
     # Apply labelling with an arbitrary "ground truth" location
     fake_true_loc = locations[3].location_id
-    label_candidates_with_ground_truth(
-        cands, {case.case_id: fake_true_loc}
-    )
+    label_candidates_with_ground_truth(cands, {case.case_id: fake_true_loc})
 
     flagged = [c for c in cands if c.is_true_location]
     # At most one candidate per case should be flagged
-    assert len(flagged) <= 1, (
-        f"labelling flagged {len(flagged)} candidates for one case"
-    )
+    assert len(flagged) <= 1, f"labelling flagged {len(flagged)} candidates for one case"
     if flagged:
         assert flagged[0].location_id == fake_true_loc
 
@@ -395,9 +385,11 @@ def test_generator_pipeline_does_not_pass_ground_truth_to_candidates():
     """Static check: the generator module must not pass ground truth into
     generate_candidates_for_case."""
     import src.data_generation.generator as gen_module
+
     src = inspect.getsource(gen_module)
     # Find all calls to generate_candidates_for_case
     import re
+
     matches = re.findall(
         r"generate_candidates_for_case\s*\(([^)]*)\)",
         src,
@@ -409,8 +401,7 @@ def test_generator_pipeline_does_not_pass_ground_truth_to_candidates():
         lowered = call_args.lower()
         for forbidden in ("true_ground_truth", "ground_truth", " gt,", "gt=", "gt\n"):
             assert forbidden not in lowered, (
-                f"generator.py appears to pass '{forbidden}' to "
-                f"generate_candidates_for_case: {call_args[:200]}"
+                f"generator.py appears to pass '{forbidden}' to generate_candidates_for_case: {call_args[:200]}"
             )
 
 
@@ -429,14 +420,10 @@ def test_generator_emits_ground_truth_separately():
         gt_files_eval = list((base / "evaluation").glob("*ground_truth*"))
         gt_files_gen = list((base / "generated").glob("*ground_truth*"))
         assert gt_files_eval, "No ground truth file in evaluation/"
-        assert not gt_files_gen, (
-            f"Ground truth file found in generated/: {gt_files_gen}"
-        )
+        assert not gt_files_gen, f"Ground truth file found in generated/: {gt_files_gen}"
 
         # Model-visible candidates must not contain is_true_location
         with open(base / "generated" / "candidates.jsonl") as f:
             for line in f:
                 rec = json.loads(line)
-                assert "is_true_location" not in rec, (
-                    "Model-visible candidate exposes is_true_location"
-                )
+                assert "is_true_location" not in rec, "Model-visible candidate exposes is_true_location"

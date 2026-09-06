@@ -193,9 +193,7 @@ def generate_dataset(
     candidate_config = config.get("candidates", {})
     for case in cases:
         case_txs = [tx for tx in transactions if tx.case_id == case.case_id]
-        case_cands = generate_candidates_for_case(
-            case, case_txs, locations, candidate_config, rng
-        )
+        case_cands = generate_candidates_for_case(case, case_txs, locations, candidate_config, rng)
         candidates.extend(case_cands)
 
     # Step 5b: Attach is_true_location flag using ground truth (post-generation).
