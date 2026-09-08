@@ -3,9 +3,9 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SENTINEL - Cybercrime Investigation Dashboard",
+  title: "SENTINEL — Cybercrime Location Intelligence",
   description:
-    "Investigator decision-support tool for cybercrime cash-out location ranking.",
+    "Evidence-based cybercrime investigation decision-support tool for cash-out location ranking.",
 };
 
 export default function RootLayout({
@@ -23,10 +23,14 @@ export default function RootLayout({
                 <div className="flex h-8 w-8 items-center justify-center rounded bg-sentinel-600 text-sm font-bold text-white">
                   S
                 </div>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  SENTINEL
-                </h1>
-                <span className="badge-blue">MVP</span>
+                <div className="flex flex-col">
+                  <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+                    SENTINEL
+                  </h1>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 hidden sm:block">
+                    Cybercrime Location Intelligence
+                  </span>
+                </div>
               </div>
               <nav className="flex items-center gap-4">
                 <Link

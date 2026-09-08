@@ -67,6 +67,16 @@ const GROUP_META: Record<string, { label: string; color: string }> = {
   case: { label: "Case", color: "bg-gray-500" },
 };
 
+const SCENARIO_BADGES: Record<string, string> = {
+  DIRECT_CASHOUT: "badge-red",
+  RAPID_MULE_CHAIN: "badge-blue",
+  MULTI_HOP: "badge-yellow",
+  GEOGRAPHIC_JUMP: "badge-green",
+  DELAYED_CASHOUT: "badge-yellow",
+  URBAN_CLUSTER: "badge-blue",
+  DISPERSED_ACTIVITY: "badge-green",
+};
+
 function GroupScores({
   groupScores,
 }: {
@@ -907,6 +917,166 @@ function EvidenceFlow({
   );
 }
 
+interface ComparisonRow {
+  rank: number;
+  locationId: string;
+  locationType: string;
+  metro: string;
+  region: string;
+  wbScore: number;
+  rfScore: number;
+  rankChange: number;
+}
+
+function ModelComparisonTable({
+  wbData,
+  rfData,
+}: {
+  wbData: RankResponse;
+  rfData: RankResponse;
+}) {
+  const comparison = useMemo(() => {
+    const wbMap = new Map(
+      wbData.ranked_candidates.map((c) => [c.location_id, c])
+    );
+    const rfMap = new Map(
+      rfData.ranked_candidates.map((c) => [c.location_id, c])
+    );
+
+    const allIds = new Set([...wbMap.keys(), ...rfMap.keys()]);
+    const rows: ComparisonRow[] = [];
+
+    for (const id of allIds) {
+      const wb = wbMap.get(id);
+      const rf = rfMap.get(id);
+      if (!wb && !rf) continue;
+
+      const wbRank = wb?.rank ?? 999;
+      const rfRank = rf?.rank ?? 999;
+      const wbScore = wb?.risk_score ?? 0;
+      const rfScore = rf?.risk_score ?? 0;
+      const loc = wb?.location || rf?.location;
+
+      rows.push({
+        rank: Math.min(wbRank, rfRank),
+        locationId: id,
+        locationType: loc?.location_type ?? "Unknown",
+        metro: loc?.metro ?? "Unknown",
+        region: loc?.region ?? "Unknown",
+        wbScore,
+        rfScore,
+        rankChange: wbRank - rfRank,
+      });
+    }
+
+    rows.sort((a, b) => a.rank - b.rank);
+    return rows;
+  }, [wbData, rfData]);
+
+  const wbTop1 = wbData.ranked_candidates[0]?.location_id;
+  const rfTop1 = rfData.ranked_candidates[0]?.location_id;
+  const agreeTop = wbTop1 === rfTop1;
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-sentinel-500" />
+          <span className="text-xs text-gray-600">
+            Weighted Baseline #1: <span className="font-mono font-semibold">{wbTop1 || "—"}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-purple-500" />
+          <span className="text-xs text-gray-600">
+            Random Forest #1: <span className="font-mono font-semibold">{rfTop1 || "—"}</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-2.5">
+        <p className="text-xs text-gray-600">
+          {agreeTop ? (
+            <>
+              <span className="font-medium text-sentinel-700">Models agree</span> on the
+              highest-ranked candidate ({wbTop1}). Both models identify the same
+              location as the top priority.
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-amber-700">Models differ</span> on the
+              highest-ranked candidate. Weighted Baseline: {wbTop1 || "—"}. Random
+              Forest: {rfTop1 || "—"}. Review the evidence signals before
+              prioritizing.
+            </>
+          )}
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="pb-2 pr-3 text-left font-medium text-gray-500">Rank</th>
+              <th className="pb-2 pr-3 text-left font-medium text-gray-500">Location</th>
+              <th className="pb-2 pr-3 text-left font-medium text-gray-500">Type</th>
+              <th className="pb-2 pr-3 text-right font-medium text-gray-500">Baseline</th>
+              <th className="pb-2 pr-3 text-right font-medium text-gray-500">RF</th>
+              <th className="pb-2 text-right font-medium text-gray-500">Rank Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.map((row) => (
+              <tr
+                key={row.locationId}
+                className="border-b border-gray-100 last:border-0"
+              >
+                <td className="py-2 pr-3 font-mono font-semibold text-gray-900">
+                  #{row.rank}
+                </td>
+                <td className="py-2 pr-3">
+                  <span className="font-mono font-semibold text-gray-900">
+                    {row.locationId}
+                  </span>
+                  <span className="ml-1 text-gray-400">
+                    {row.metro}
+                  </span>
+                </td>
+                <td className="py-2 pr-3 text-gray-600">{row.locationType}</td>
+                <td className="py-2 pr-3 text-right font-mono text-sentinel-700">
+                  {row.wbScore.toFixed(3)}
+                </td>
+                <td className="py-2 pr-3 text-right font-mono text-purple-700">
+                  {row.rfScore.toFixed(3)}
+                </td>
+                <td className="py-2 text-right">
+                  {row.rankChange === 0 ? (
+                    <span className="text-gray-400">0</span>
+                  ) : row.rankChange > 0 ? (
+                    <span className="font-medium text-green-600">
+                      +{row.rankChange}
+                    </span>
+                  ) : (
+                    <span className="font-medium text-red-600">
+                      {row.rankChange}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 text-[10px] text-gray-400">
+        Rank change shows Weighted Baseline rank minus Random Forest rank. Positive
+        means the candidate ranks higher in Random Forest. This comparison is
+        descriptive, not a claim that either model is more accurate.
+      </p>
+    </div>
+  );
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = params.caseId as string;
@@ -923,15 +1093,21 @@ export default function CaseDetailPage() {
   >("weighted_baseline");
   const [lastRankedTopK, setLastRankedTopK] = useState<number>(10);
 
-  // Transaction evidence state
   const [txData, setTxData] = useState<CaseTransactionsResponse | null>(null);
   const [txLoading, setTxLoading] = useState(true);
   const [txError, setTxError] = useState<string | null>(null);
 
+  // Model comparison
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareData, setCompareData] = useState<{
+    weighted_baseline: RankResponse | null;
+    random_forest: RankResponse | null;
+  }>({ weighted_baseline: null, random_forest: null });
+  const [compareLoading, setCompareLoading] = useState(false);
+
   const paramsChanged =
     model !== lastRankedModel || topK !== lastRankedTopK;
 
-  // Pre-compute transaction metros set for candidate card geo-context badges
   const txMetros = useMemo(() => {
     if (!txData) return undefined;
     return new Set(
@@ -945,10 +1121,7 @@ export default function CaseDetailPage() {
     setHighlightedId(null);
     const effectiveTopK = Math.max(1, topK);
     api
-      .rankCandidates(caseId, {
-        model,
-        top_k: effectiveTopK,
-      })
+      .rankCandidates(caseId, { model, top_k: effectiveTopK })
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => {
@@ -968,67 +1141,232 @@ export default function CaseDetailPage() {
       .finally(() => setTxLoading(false));
   }, [caseId]);
 
+  const loadComparison = useCallback(() => {
+    setCompareLoading(true);
+    const effectiveTopK = Math.max(1, topK);
+    Promise.allSettled([
+      api.rankCandidates(caseId, { model: "weighted_baseline", top_k: effectiveTopK }),
+      api.rankCandidates(caseId, { model: "random_forest", top_k: effectiveTopK }),
+    ]).then(([wbResult, rfResult]) => {
+      setCompareData({
+        weighted_baseline:
+          wbResult.status === "fulfilled" ? wbResult.value : null,
+        random_forest:
+          rfResult.status === "fulfilled" ? rfResult.value : null,
+      });
+      setCompareLoading(false);
+    });
+  }, [caseId, topK]);
+
   useEffect(() => {
     loadRanking();
     loadTransactions();
   }, [caseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const topCandidate = data && data.ranked_candidates.length > 0
+    ? data.ranked_candidates[0]
+    : null;
+  const topPriority = topCandidate ? getPriorityLabel(topCandidate.risk_score) : null;
+
   return (
     <div className="space-y-5">
-      {/* Case Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            Case {caseId}
-          </h2>
-          {data && (
-            <p className="mt-0.5 text-sm text-gray-500">
-              {data.case.fraud_scenario.replace(/_/g, " ")} — {data.case.origin_metro} —{" "}
-              {formatINR(data.case.reported_amount)}
-            </p>
-          )}
+
+      {/* === 1. INVESTIGATION HEADER === */}
+      <div className="rounded-lg border border-sentinel-200 bg-gradient-to-br from-sentinel-50 to-white p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-sentinel-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sentinel-700">
+                SENTINEL Investigation
+              </span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                Synthetic Demo
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">{caseId}</h2>
+            {data && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`badge text-[10px] ${SCENARIO_BADGES[data.case.fraud_scenario] || "badge-gray"}`}>
+                  {data.case.fraud_scenario.replace(/_/g, " ")}
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatINR(data.case.reported_amount)}
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-sm text-gray-600">
+                  {data.case.origin_metro}
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-sm text-gray-500">
+                  {formatDate(data.case.complaint_time)}
+                </span>
+              </div>
+            )}
+          </div>
+          <Link href="/investigations" className="btn-secondary shrink-0">
+            Back to Investigations
+          </Link>
         </div>
-        <Link href="/investigations" className="btn-secondary">
-          Back to list
-        </Link>
       </div>
 
-      {/* Investigation Summary */}
+      {/* === 2. AT A GLANCE === */}
       {data && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-            Investigation Summary
+            At a Glance
           </h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
             <div>
-              <p className="text-xs text-gray-400">Scenario</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900">
+              <p className="text-[10px] text-gray-400">Scenario</p>
+              <p className="text-sm font-medium text-gray-900">
                 {data.case.fraud_scenario.replace(/_/g, " ")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Complaint Amount</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900">
+              <p className="text-[10px] text-gray-400">Complaint Amount</p>
+              <p className="text-sm font-medium text-gray-900">
                 {formatINR(data.case.reported_amount)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Filed</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900">
+              <p className="text-[10px] text-gray-400">Filed</p>
+              <p className="text-sm font-medium text-gray-900">
                 {formatDate(data.case.complaint_time)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Origin Metro</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900">
+              <p className="text-[10px] text-gray-400">Origin Metro</p>
+              <p className="text-sm font-medium text-gray-900">
                 {data.case.origin_metro}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400">Accounts</p>
+              <p className="text-sm font-medium text-gray-900">
+                {data.case.num_accounts_involved}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400">Transactions</p>
+              <p className="text-sm font-medium text-gray-900">
+                {data.case.num_transactions}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400">Candidate Locations</p>
+              <p className="text-sm font-medium text-gray-900">
+                {data.case.num_candidates}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400">Ranking Model</p>
+              <p className="text-sm font-medium text-gray-900">
+                {data.model_used === "random_forest" ? "Random Forest" : "Weighted Baseline"}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Evidence Context */}
+      {/* Loading skeleton for header area */}
+      {loading && !data && (
+        <div className="space-y-4">
+          <div className="card">
+            <div className="h-5 w-48 skeleton" />
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i}>
+                  <div className="h-2.5 w-16 skeleton" />
+                  <div className="mt-1 h-4 w-24 skeleton" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="card border-red-200 bg-red-50">
+          <p className="text-sm text-red-800">Error: {error}</p>
+        </div>
+      )}
+
+      {/* === 3. #1 PRIORITY RESULT (Above the fold) === */}
+      {data && topCandidate && (
+        <div className="rounded-lg border-2 border-sentinel-300 bg-sentinel-50/50 p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="rounded-full bg-sentinel-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              Highest Priority
+            </span>
+            {topPriority && (
+              <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${topPriority.bg} ${topPriority.color}`}>
+                {topPriority.label}
+              </span>
+            )}
+            {txMetros && topCandidate.location && txMetros.has(topCandidate.location.metro) && (
+              <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                GEO CONTEXT MATCH
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-lg font-bold text-white">
+                1
+              </div>
+              <div>
+                <p className="font-mono text-lg font-bold text-gray-900">
+                  {topCandidate.location_id}
+                </p>
+                {topCandidate.location && (
+                  <p className="text-sm text-gray-600">
+                    {topCandidate.location.location_type} — {topCandidate.location.region},{" "}
+                    {topCandidate.location.metro}
+                  </p>
+                )}
+                {topCandidate.location && (
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {topCandidate.location.latitude.toFixed(4)}, {topCandidate.location.longitude.toFixed(4)} ·
+                    Density: {topCandidate.location.density_score.toFixed(2)}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">
+                {topCandidate.risk_score.toFixed(3)}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">
+                Priority Score
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-md border border-gray-200 bg-white p-3">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+              {topCandidate.model_used === "random_forest"
+                ? "Supporting Evidence Signals"
+                : "Evidence Assessment"}
+            </p>
+            <p className="text-sm leading-relaxed text-gray-700">
+              {topCandidate.explanation}
+            </p>
+          </div>
+
+          {topCandidate.group_scores && (
+            <div className="mt-3">
+              <GroupScores groupScores={topCandidate.group_scores} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === 4. EVIDENCE PIPELINE === */}
+      {data && <EvidenceFlow modelUsed={data.model_used} />}
+
+      {/* === 5. AVAILABLE EVIDENCE === */}
       {data && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
@@ -1086,26 +1424,20 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* Transaction Evidence */}
+      {/* === 6. OBSERVED TRANSACTION EVIDENCE === */}
       <TransactionEvidence txData={txData} txLoading={txLoading} txError={txError} />
 
-      {/* Transaction Geography + Shared Context */}
+      {/* === 7. GEOGRAPHIC CONTEXT === */}
       {txData && txData.transactions.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
           <TransactionGeography txData={txData} />
           {data && (
-            <SharedGeoContext
-              txData={txData}
-              candidates={data.ranked_candidates}
-            />
+            <SharedGeoContext txData={txData} candidates={data.ranked_candidates} />
           )}
         </div>
       )}
 
-      {/* Evidence Flow */}
-      {data && <EvidenceFlow modelUsed={data.model_used} />}
-
-      {/* Evidence Signal Strength + Geographic Evidence */}
+      {/* === 8. EVIDENCE SIGNALS + GEOGRAPHIC EVIDENCE === */}
       {data && (
         <div className="grid gap-4 lg:grid-cols-2">
           <EvidenceSignalStrength
@@ -1119,141 +1451,218 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex items-center gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-500">
-            Model
-          </label>
-          <select
-            value={model}
-            onChange={(e) =>
-              setModel(
-                e.target.value as "weighted_baseline" | "random_forest"
-              )
-            }
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          >
-            <option value="weighted_baseline">Weighted Baseline</option>
-            <option value="random_forest">Random Forest</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500">
-            Top K
-          </label>
-          <input
-            type="number"
-            value={topK}
-            onChange={(e) => setTopK(Number(e.target.value))}
-            min={1}
-            max={100}
-            className="mt-1 w-20 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          />
-        </div>
-        <button onClick={loadRanking} className="btn-primary mt-5 relative">
-          Re-rank
-          {paramsChanged && (
-            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400" />
-          )}
-        </button>
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="space-y-4">
-          <div className="card border-yellow-200 bg-yellow-50">
-            <div className="h-3 w-full skeleton" />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="card">
-                <div className="h-3 w-24 skeleton" />
-                <div className="mt-1.5 h-4 w-32 skeleton" />
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-col gap-4 lg:flex-row">
-            <div className="lg:w-[60%]">
-              <div className="h-[400px] skeleton rounded-lg sm:h-[480px] lg:h-[500px]" />
-            </div>
-            <div className="lg:w-[40%] space-y-3">
-              <div className="h-6 w-40 skeleton" />
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="card">
-                  <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 skeleton rounded-full shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 skeleton" />
-                      <div className="h-3 w-48 skeleton" />
-                    </div>
-                    <div className="h-2 w-24 skeleton" />
-                  </div>
-                  <div className="mt-3 h-3 w-full skeleton" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="card border-red-200 bg-red-50">
-          <p className="text-sm text-red-800">Error: {error}</p>
-        </div>
-      )}
-
-      {/* Ranking Results */}
+      {/* === 9. MAP + RANKED CANDIDATES === */}
       {data && (
         <>
-          {/* Disclaimer */}
-          <div className="card border-yellow-200 bg-yellow-50">
-            <p className="text-xs text-yellow-800">{data.disclaimer}</p>
+          {/* Controls */}
+          <div className="flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500">Model</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value as "weighted_baseline" | "random_forest")}
+                className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              >
+                <option value="weighted_baseline">Weighted Baseline</option>
+                <option value="random_forest">Random Forest</option>
+              </select>
+              <p className="mt-1 max-w-[220px] text-[10px] leading-tight text-gray-400">
+                {model === "weighted_baseline"
+                  ? "Transparent weighted scoring across five evidence groups."
+                  : "Trained ensemble model with differentiated probability scores."}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500">Top K</label>
+              <input
+                type="number"
+                value={topK}
+                onChange={(e) => setTopK(Number(e.target.value))}
+                min={1}
+                max={100}
+                className="mt-1 w-20 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <button onClick={loadRanking} className="btn-primary relative">
+              Re-rank
+              {paramsChanged && (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400" />
+              )}
+            </button>
+            <div className="ml-auto text-xs text-gray-400">
+              {data.ranked_candidates.length} of {data.total_candidates} candidates shown
+            </div>
           </div>
 
           {/* Map + Candidates */}
           <div className="flex flex-col gap-4 lg:flex-row">
             <div className="min-w-0 lg:w-[60%]">
               <div className="rounded-lg border border-gray-200 bg-white p-2">
+                <p className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                  Candidate Location Map
+                </p>
                 <SentinelMapWrapper
                   caseInfo={data.case}
                   candidates={data.ranked_candidates}
                   highlightedId={highlightedId}
                 />
                 <p className="mt-2 px-2 text-[11px] text-gray-400">
-                  Ranked candidates are risk-based priorities derived from
-                  available query-time evidence; they are not guaranteed
-                  predictions. All data is synthetic.
+                  Ranked candidate locations are evidence-based priorities, not
+                  guaranteed predictions. All data is synthetic.
                 </p>
               </div>
             </div>
 
             <div className="flex min-h-0 flex-col lg:w-[40%]">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Ranked Candidates
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Ranked Candidate Locations
                 </h3>
-                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                  {data.ranked_candidates.length} of {data.total_candidates}
-                </span>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto pr-1" style={{ maxHeight: "calc(100vh - 220px)" }}>
                 {data.ranked_candidates.map((c, i) => (
-                    <CandidateCard
-                      key={c.location_id}
-                      candidate={c}
-                      isHighlighted={highlightedId === c.location_id}
-                      onHighlight={setHighlightedId}
-                      isFirst={i === 0}
-                      txMetros={txMetros}
-                    />
+                  <CandidateCard
+                    key={c.location_id}
+                    candidate={c}
+                    isHighlighted={highlightedId === c.location_id}
+                    onHighlight={setHighlightedId}
+                    isFirst={i === 0}
+                    txMetros={txMetros}
+                  />
                 ))}
               </div>
             </div>
           </div>
         </>
       )}
+
+      {/* === 9B. MODEL COMPARISON === */}
+      {data && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Model Comparison
+              </h3>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Compare rankings from both models side by side.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (!compareMode) {
+                  loadComparison();
+                }
+                setCompareMode(!compareMode);
+              }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                compareMode
+                  ? "bg-sentinel-100 text-sentinel-700"
+                  : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {compareMode ? "Hide Comparison" : "Compare Models"}
+            </button>
+          </div>
+
+          {compareMode && (
+            <div className="mt-4">
+              {compareLoading ? (
+                <div className="space-y-2">
+                  <div className="h-8 skeleton" />
+                  <div className="h-8 skeleton" />
+                  <div className="h-8 skeleton" />
+                </div>
+              ) : compareData.weighted_baseline && compareData.random_forest ? (
+                <ModelComparisonTable
+                  wbData={compareData.weighted_baseline}
+                  rfData={compareData.random_forest}
+                />
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Could not load comparison data. Ensure the backend is running.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === 10. INVESTIGATOR FOCUS === */}
+      {data && topCandidate && (
+        <div className="rounded-lg border border-sentinel-200 bg-sentinel-50 p-4">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-sentinel-600">
+            Investigator Focus
+          </h3>
+          <p className="mb-3 text-xs text-gray-500">
+            Suggested review priorities based on the available evidence and ranked candidates.
+          </p>
+          <ol className="space-y-2 text-sm text-gray-700">
+            <li className="flex items-start gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                1
+              </span>
+              <span>
+                Review the <strong>#1 ranked candidate</strong> at{" "}
+                <span className="font-mono text-xs">{topCandidate.location_id}</span>
+                {topCandidate.location && (
+                  <> — {topCandidate.location.region}, {topCandidate.location.metro}</>
+                )}
+                . Priority score: {topCandidate.risk_score.toFixed(3)}.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                2
+              </span>
+              <span>
+                Review the <strong>observed transaction trail</strong> — {data.case.num_transactions} transactions
+                across {data.case.num_accounts_involved} accounts.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                3
+              </span>
+              <span>
+                Review the <strong>geographic relationship</strong> between
+                transaction metros and ranked candidate locations for spatial
+                context.
+              </span>
+            </li>
+          </ol>
+          <p className="mt-3 text-[10px] text-gray-400">
+            These are workflow suggestions for investigator review, not
+            automated actions.
+          </p>
+        </div>
+      )}
+
+      {/* === 11. DISCLAIMER === */}
+      {data && (
+        <div className="card border-yellow-200 bg-yellow-50">
+          <p className="text-xs text-yellow-800">{data.disclaimer}</p>
+        </div>
+      )}
+
+      {/* === 12. BOTTOM ACTIONS === */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+        <Link href="/investigations" className="btn-secondary">
+          Back to Investigations
+        </Link>
+        <Link
+          href={`/investigations/${caseId}/report`}
+          className="rounded-md bg-sentinel-600 px-4 py-2 text-sm font-medium text-white hover:bg-sentinel-700 transition-colors"
+        >
+          Generate Intelligence Report
+        </Link>
+        <Link href="/investigations/new" className="btn-secondary">
+          New Investigation
+        </Link>
+        <Link href="/health" className="btn-secondary">
+          System Status
+        </Link>
+      </div>
     </div>
   );
 }
