@@ -9,7 +9,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from backend.app.schemas import (
+    AccountInfo,
     CaseInfo,
+    CaseTransactionsResponse,
     ErrorResponse,
     InvestigationListResponse,
     InvestigationSummary,
@@ -18,6 +20,7 @@ from backend.app.schemas import (
     RankedCandidate,
     RankRequest,
     RankResponse,
+    TransactionInfo,
 )
 from backend.app.services.data_service import DataService
 from backend.app.services.model_service import ModelService
@@ -41,13 +44,19 @@ def init_services(data_service: DataService, model_service: ModelService) -> Non
 
 def _get_data_service() -> DataService:
     if _data_service is None:
-        raise RuntimeError("DataService not initialized")
+        raise HTTPException(
+            status_code=503,
+            detail="DataService not initialized. The server may be starting up.",
+        )
     return _data_service
 
 
 def _get_model_service() -> ModelService:
     if _model_service is None:
-        raise RuntimeError("ModelService not initialized")
+        raise HTTPException(
+            status_code=503,
+            detail="ModelService not initialized. The server may be starting up.",
+        )
     return _model_service
 
 
@@ -154,7 +163,7 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
             s["explanation"] = ms.explain_baseline_candidate(s, feat_row)
         # Normalize output keys
         for s in scored:
-            s["risk_score"] = s.pop("baseline_score")
+            s["risk_score"] = s.pop("baseline_score", s.get("risk_score", 0.0))
             s["model_used"] = "weighted_baseline"
     elif request.model == ModelType.RANDOM_FOREST:
         scored = ms.score_random_forest(feature_rows)
@@ -164,12 +173,16 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
             s["explanation"] = ms.describe_rf_evidence_signals(feat_row)
             s["group_scores"] = None
             s["model_used"] = "random_forest"
-            s["risk_score"] = s.pop("rf_score")
+            s["risk_score"] = s.pop("rf_score", s.get("risk_score", 0.0))
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid model type: {request.model}",
         )
+
+    # Clamp risk scores to [0, 1] for schema validation safety
+    for s in scored:
+        s["risk_score"] = max(0.0, min(1.0, float(s["risk_score"])))
 
     # Sort by rank
     scored.sort(key=lambda x: x["rank"])
@@ -226,4 +239,68 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
         model_used=request.model.value,
         ranked_candidates=ranked_candidates,
         total_candidates=len(feature_rows),
+    )
+
+
+@router.get(
+    "/investigations/{case_id}/transactions",
+    response_model=CaseTransactionsResponse,
+    summary="Get transaction evidence for a case",
+    description=(
+        "Returns the observed synthetic transaction chain and associated accounts "
+        "for a specific investigation case. This is factual evidence data, "
+        "not ranking or prediction output."
+    ),
+    responses={
+        404: {"model": ErrorResponse, "description": "Case not found"},
+    },
+)
+async def get_case_transactions(case_id: str) -> CaseTransactionsResponse:
+    """Get transaction evidence for an investigation case.
+
+    Returns the recorded transaction chain and accounts. Ground truth
+    information (actual cash-out location) is never included.
+    """
+    ds = _get_data_service()
+
+    # Validate case exists
+    case = ds.get_case(case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail=f"Case '{case_id}' not found")
+
+    # Get transactions and accounts for this case
+    txs = ds.get_transactions_for_case(case_id)
+    accts = ds.get_accounts_for_case(case_id)
+
+    # Build response — only expose fields present in the synthetic data
+    transactions = [
+        TransactionInfo(
+            transaction_id=t["transaction_id"],
+            case_id=t["case_id"],
+            sender_account_id=t["sender_account_id"],
+            receiver_account_id=t["receiver_account_id"],
+            timestamp=t["timestamp"],
+            amount=t["amount"],
+            transaction_type=t["transaction_type"],
+            sequence_number=t["sequence_number"],
+            sender_metro=t.get("sender_metro", ""),
+            receiver_metro=t.get("receiver_metro", ""),
+        )
+        for t in txs
+    ]
+
+    accounts = [
+        AccountInfo(
+            account_id=a["account_id"],
+            role=a["role"],
+            bank_synthetic=a.get("bank_synthetic", "SYNTH_BANK"),
+            account_age_days=a.get("account_age_days", 365),
+        )
+        for a in accts
+    ]
+
+    return CaseTransactionsResponse(
+        case_id=case_id,
+        transactions=transactions,
+        accounts=accounts,
     )

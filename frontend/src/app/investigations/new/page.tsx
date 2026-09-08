@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { formatINR, formatDate } from "@/lib/format";
 import type { CaseInfo, InvestigationSummary } from "@/types/api";
 
 type MatchState = "idle" | "loading" | "matched" | "none";
@@ -28,24 +29,6 @@ const EVIDENCE_CATEGORIES = [
 function readableError(err: unknown): string {
   if (err instanceof Error) return err.message;
   return "Unexpected error";
-}
-
-function formatINR(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function scenarioLabel(scenario: string): string {
@@ -242,8 +225,22 @@ export default function NewInvestigationPage() {
       </div>
 
       {casesLoading && cases.length === 0 && (
-        <div className="flex items-center justify-center py-10">
-          <div className="text-sm text-gray-500">Loading synthetic cases...</div>
+        <div className="space-y-4">
+          <div className="card">
+            <div className="h-5 w-48 skeleton" />
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i}>
+                  <div className="mb-1 h-3 w-24 skeleton" />
+                  <div className="h-9 w-full skeleton" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 flex gap-3">
+              <div className="h-9 w-48 skeleton" />
+              <div className="h-9 w-52 skeleton" />
+            </div>
+          </div>
         </div>
       )}
 

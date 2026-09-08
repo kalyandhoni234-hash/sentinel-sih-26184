@@ -10,8 +10,7 @@ const SentinelMapInner = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="flex items-center justify-center rounded-lg bg-gray-100"
-        style={{ height: 480 }}
+        className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-100 sm:h-[480px] lg:h-[500px]"
       >
         <div className="text-center">
           <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-sentinel-600" />

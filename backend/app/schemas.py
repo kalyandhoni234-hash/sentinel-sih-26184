@@ -174,3 +174,54 @@ class ErrorResponse(BaseModel):
 
     detail: str = Field(..., description="Error message")
     error_code: str = Field(default="UNKNOWN", description="Machine-readable error code")
+
+
+# ---------------------------------------------------------------------------
+# Transaction evidence schemas
+# ---------------------------------------------------------------------------
+
+
+class AccountInfo(BaseModel):
+    """Account information for evidence visualization."""
+
+    account_id: str = Field(..., description="Unique account identifier")
+    role: str = Field(..., description="Account role in the fraud chain")
+    bank_synthetic: str = Field(default="SYNTH_BANK", description="Synthetic bank identifier")
+    account_age_days: int = Field(default=365, ge=0, description="Account age in days")
+
+
+class TransactionInfo(BaseModel):
+    """Transaction record for evidence visualization."""
+
+    transaction_id: str = Field(..., description="Unique transaction identifier")
+    case_id: str = Field(..., description="Case this transaction belongs to")
+    sender_account_id: str = Field(..., description="Sender account identifier")
+    receiver_account_id: str = Field(..., description="Receiver account identifier")
+    timestamp: datetime = Field(..., description="Transaction timestamp")
+    amount: float = Field(..., gt=0, description="Transaction amount in INR")
+    transaction_type: str = Field(..., description="Transaction type (UPI, NEFT, RTGS, IMPS, WIRE)")
+    sequence_number: int = Field(..., ge=1, description="Order in the transaction chain")
+    sender_metro: str = Field(default="", description="Sender metro area")
+    receiver_metro: str = Field(default="", description="Receiver metro area")
+
+
+class CaseTransactionsResponse(BaseModel):
+    """Response containing transaction evidence for a case."""
+
+    case_id: str = Field(..., description="Case identifier")
+    transactions: list[TransactionInfo] = Field(
+        ...,
+        description="Transactions belonging to this case, ordered by sequence",
+    )
+    accounts: list[AccountInfo] = Field(
+        ...,
+        description="Accounts involved in this case",
+    )
+    disclaimer: str = Field(
+        default=(
+            "This is observed synthetic transaction evidence. "
+            "Transactions represent the recorded chain for this case, "
+            "not predictions or future activity. All data is synthetic."
+        ),
+        description="Evidence disclaimer",
+    )

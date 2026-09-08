@@ -59,4 +59,12 @@ body {
   .badge-red {
     @apply badge bg-red-100 text-red-800;
   }
+
+  .badge-gray {
+    @apply badge bg-gray-100 text-gray-700;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded bg-gray-200;
+  }
 }

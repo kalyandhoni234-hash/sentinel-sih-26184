@@ -68,3 +68,30 @@ export interface ErrorResponse {
   detail: string;
   error_code: string;
 }
+
+export interface AccountInfo {
+  account_id: string;
+  role: string;
+  bank_synthetic: string;
+  account_age_days: number;
+}
+
+export interface TransactionInfo {
+  transaction_id: string;
+  case_id: string;
+  sender_account_id: string;
+  receiver_account_id: string;
+  timestamp: string;
+  amount: number;
+  transaction_type: string;
+  sequence_number: number;
+  sender_metro: string;
+  receiver_metro: string;
+}
+
+export interface CaseTransactionsResponse {
+  case_id: string;
+  transactions: TransactionInfo[];
+  accounts: AccountInfo[];
+  disclaimer: string;
+}

@@ -40,6 +40,7 @@ class DataService:
         self._cases_raw: list[dict] = []
         self._candidates: list[dict] = []
         self._transactions: list[dict] = []
+        self._accounts: list[dict] = []
         self._locations: list[dict] = []
         self._ground_truths: list[dict] = []
         self._case_objects: list[Case] = []
@@ -53,15 +54,20 @@ class DataService:
             return
 
         logger.info("Generating synthetic dataset with seed=%d", self._seed)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = generate_dataset(seed=self._seed, output_dir=tmpdir)
-            out = Path(result["output_dir"])
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                result = generate_dataset(seed=self._seed, output_dir=tmpdir)
+                out = Path(result["output_dir"])
 
-            self._cases_raw = self._load_jsonl(out / "generated/cases.jsonl")
-            self._candidates = self._load_jsonl(out / "generated/candidates.jsonl")
-            self._transactions = self._load_jsonl(out / "generated/transactions.jsonl")
-            self._locations = self._load_jsonl(out / "generated/locations.jsonl")
-            self._ground_truths = self._load_jsonl(out / "evaluation/ground_truth.jsonl")
+                self._cases_raw = self._load_jsonl(out / "generated/cases.jsonl")
+                self._candidates = self._load_jsonl(out / "generated/candidates.jsonl")
+                self._transactions = self._load_jsonl(out / "generated/transactions.jsonl")
+                self._accounts = self._load_jsonl(out / "generated/accounts.jsonl")
+                self._locations = self._load_jsonl(out / "generated/locations.jsonl")
+                self._ground_truths = self._load_jsonl(out / "evaluation/ground_truth.jsonl")
+        except Exception as e:
+            logger.error("Failed to generate or load synthetic dataset: %s", e)
+            raise RuntimeError(f"Dataset generation/loading failed: {e}") from e
 
         # Build Case objects
         self._case_objects = []
@@ -93,9 +99,11 @@ class DataService:
 
         self._loaded = True
         logger.info(
-            "Loaded %d cases, %d candidates, %d features",
+            "Loaded %d cases, %d candidates, %d transactions, %d accounts, %d features",
             len(self._case_objects),
             len(self._feature_matrix),
+            len(self._transactions),
+            len(self._accounts),
             len(self._get_feature_names()),
         )
 
@@ -126,6 +134,26 @@ class DataService:
         """Return location details by ID."""
         self.load()
         return self._location_map.get(location_id)
+
+    def get_transactions_for_case(self, case_id: str) -> list[dict]:
+        """Return all transactions belonging to a specific case.
+
+        Returns raw transaction dicts sorted by sequence_number.
+        """
+        self.load()
+        txs = [t for t in self._transactions if t["case_id"] == case_id]
+        txs.sort(key=lambda t: t.get("sequence_number", 0))
+        return txs
+
+    def get_accounts_for_case(self, case_id: str) -> list[dict]:
+        """Return all accounts belonging to a specific case.
+
+        Returns raw account dicts sorted by account_id.
+        """
+        self.load()
+        accts = [a for a in self._accounts if a["case_id"] == case_id]
+        accts.sort(key=lambda a: a["account_id"])
+        return accts
 
     def get_all_feature_rows(self) -> list[dict[str, Any]]:
         """Return the complete feature matrix."""

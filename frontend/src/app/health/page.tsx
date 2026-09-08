@@ -22,8 +22,27 @@ export default function HealthPage() {
       <h2 className="text-xl font-bold text-gray-900">System Status</h2>
 
       {loading && (
-        <div className="py-8 text-center text-sm text-gray-500">
-          Checking API...
+        <div className="space-y-4">
+          <div className="card">
+            <div className="flex items-center gap-3">
+              <div className="h-3 w-3 skeleton rounded-full" />
+              <div className="space-y-1.5">
+                <div className="h-4 w-32 skeleton" />
+                <div className="h-3.5 w-24 skeleton" />
+              </div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="h-4 w-32 skeleton" />
+            <div className="mt-3 space-y-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 rounded bg-gray-50 px-3 py-2">
+                  <div className="h-2 w-2 skeleton rounded-full" />
+                  <div className="h-4 w-48 skeleton" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

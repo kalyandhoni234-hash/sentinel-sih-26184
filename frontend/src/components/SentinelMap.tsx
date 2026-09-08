@@ -288,7 +288,7 @@ export function SentinelMap(props: SentinelMapProps) {
   }, []);
 
   return (
-    <div ref={mapRef} className="relative" style={{ height: 480 }}>
+    <div ref={mapRef} className="relative h-[400px] w-full sm:h-[480px] lg:h-[500px]">
       <MapInner {...props} onTileError={handleTileError} />
       <TileErrorBanner visible={tileError} />
     </div>

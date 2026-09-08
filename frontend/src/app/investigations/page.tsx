@@ -1,26 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
+import { formatINR, formatDate } from "@/lib/format";
 import type { InvestigationSummary } from "@/types/api";
-
-function formatINR(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 const SCENARIO_COLORS: Record<string, string> = {
   DIRECT_CASHOUT: "badge-red",
@@ -69,8 +53,35 @@ export default function InvestigationsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-gray-500">Loading investigations...</div>
+      <div className="space-y-4">
+        <div>
+          <div className="h-7 w-40 skeleton" />
+          <div className="mt-1 h-4 w-24 skeleton" />
+        </div>
+        <div className="flex gap-3">
+          <div className="h-9 flex-1 skeleton" />
+          <div className="h-9 w-40 skeleton" />
+        </div>
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="bg-gray-50 px-4 py-3">
+            <div className="flex gap-16">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="h-3 w-16 skeleton" />
+              ))}
+            </div>
+          </div>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-16 border-t border-gray-100 px-4 py-3">
+              <div className="h-4 w-24 skeleton" />
+              <div className="h-5 w-28 skeleton rounded-full" />
+              <div className="h-4 w-16 skeleton" />
+              <div className="h-4 w-16 skeleton" />
+              <div className="h-4 w-8 skeleton" />
+              <div className="h-4 w-28 skeleton" />
+              <div className="h-4 w-10 skeleton" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -164,12 +175,12 @@ export default function InvestigationsPage() {
                   {formatDate(c.complaint_time)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <a
+                  <Link
                     href={`/investigations/${c.case_id}`}
                     className="text-sm font-medium text-sentinel-600 hover:text-sentinel-800"
                   >
                     Rank
-                  </a>
+                  </Link>
                 </td>
               </tr>
             ))}

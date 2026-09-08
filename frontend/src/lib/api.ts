@@ -4,6 +4,7 @@ import type {
   CaseInfo,
   RankResponse,
   RankRequest,
+  CaseTransactionsResponse,
 } from "@/types/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -51,6 +52,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(request),
       }
+    );
+  },
+
+  async getTransactions(caseId: string): Promise<CaseTransactionsResponse> {
+    return apiFetch<CaseTransactionsResponse>(
+      `/api/v1/investigations/${caseId}/transactions`
     );
   },
 };
