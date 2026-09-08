@@ -198,7 +198,7 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # Phase 4 RF evaluation CLI
-├── tests/                # 203 tests (backend)
+├── tests/                # 209 tests (backend)
 ├── frontend/             # 4 pages, 2 components (Leaflet GIS)
 ├── docs/
 │   ├── SYNTHETIC_DATA_SPEC.md

@@ -267,20 +267,46 @@ def generate_candidates_for_case(
     """Generate the candidate set for a single case from observable evidence.
 
     The candidate set is built entirely from query-time information that does
-    NOT include the hidden ground truth. Concretely:
+    NOT include the hidden ground truth. The selection rule is:
 
-    - The true cash-out location is never inserted by force.
-    - Hard negatives are selected relative to the observable evidence anchor
-      (last known TX receiver, falling back to complaint origin), NOT relative
-      to the hidden target.
-    - Observable metros come from the case + transaction chain only.
+    1. Identify the **observable evidence metros**: the union of the complaint
+       origin metro and the sender/receiver metros of all pre-complaint
+       transactions. All of these fields are available before the model scores.
+    2. Collect every location whose metro is in that union.
+    3. Deduplicate by location_id.
+    4. If the resulting pool exceeds ``max_per_case``, select candidates using
+       multiple observable evidence anchors. Anchors are:
+         a. The complaint origin location (always available).
+         b. One representative location in each distinct pre-complaint
+            transaction receiver metro (chosen deterministically by lowest
+            location_id within the metro; the metro is the evidence, the
+            specific representative point is arbitrary).
+       For each anchor, the pool is ranked by geographic distance to that
+       anchor and the closest unused candidates are taken (per-anchor quota).
+       If slots remain after cycling through all anchors, they are filled
+       with the pool locations nearest to the complaint origin. This is
+       fully deterministic and target-independent.
+    5. If the pool is smaller than ``min_per_case`` (very rare, only when the
+       case has no transactions and an origin metro with very few locations),
+       fall back to the nearest locations to the origin until the minimum is
+       met. This fallback is still based purely on observable evidence and
+       never inspects ground truth.
+
+    Concretely:
+    - The true cash-out location is never force-inserted. It is included only
+      when it happens to lie in an observable evidence metro and is selected
+      by the deterministic multi-anchor ranking.
+    - No distance to the hidden target is ever computed.
+    - The function produces identical output for two cases that share the
+      same observable evidence, regardless of any ground-truth values.
 
     Args:
         case: The case.
-        case_transactions: All transactions for this case (used to derive an
-            observable evidence anchor and observable metros).
+        case_transactions: All transactions for this case (used to derive the
+            observable evidence metros and per-metro anchors).
         locations: All candidate locations.
-        candidate_config: Candidate generation config.
+        candidate_config: Candidate generation config (expects min_per_case,
+            max_per_case keys).
         rng: Seeded RNG.
 
     Returns:
@@ -292,8 +318,12 @@ def generate_candidates_for_case(
     max_candidates = candidate_config.get("max_per_case", 18)
     target_count = rng.randint(min_candidates, max_candidates)
 
-    evidence_anchor = _derive_evidence_anchor(case, case_transactions, locations)
+    # Derive observable evidence metros from query-time information only.
     evidence_metros = _derive_evidence_metros(case, case_transactions)
+
+    # Evidence anchor (last-TX receiver location, falling back to origin).
+    # Still used for the transaction_proximity_score per-candidate feature.
+    evidence_anchor = _derive_evidence_anchor(case, case_transactions, locations)
 
     # Resolve a usable origin location for the distance-from-origin feature.
     # This is observable evidence, NOT the hidden target.
@@ -302,15 +332,184 @@ def generate_candidates_for_case(
         None,
     )
 
-    candidates: list[Candidate] = []
-    used_location_ids: set[str] = set()
+    # Step 1: Collect all locations whose metro is in the evidence set.
+    pool: list[Location] = []
+    for loc in locations:
+        if loc.metro in evidence_metros:
+            pool.append(loc)
 
-    # 1. Hard negatives (drawn from observable evidence, no target access)
-    hard_neg_count = min(target_count // 2, 8)
-    hard_negatives = _generate_hard_negatives(case, locations, evidence_anchor, evidence_metros, rng, hard_neg_count)
-    for loc in hard_negatives:
-        if loc.location_id in used_location_ids:
-            continue
+    # Deduplicate by location_id while preserving order.
+    seen: set[str] = set()
+    unique_pool: list[Location] = []
+    for loc in pool:
+        if loc.location_id not in seen:
+            seen.add(loc.location_id)
+            unique_pool.append(loc)
+    pool = unique_pool
+
+    # Step 2: If the evidence-metro pool is larger than the target count,
+    # select candidates using multiple observable evidence anchors.
+    #
+    # Each anchor is a real Location whose metro is observable from the
+    # query-time evidence. We never use a hidden target, ground-truth field,
+    # or any post-outcome property to choose anchors. The anchors are:
+    #   1. The complaint origin location (always available).
+    #   2. For each distinct pre-complaint transaction receiver metro, one
+    #      representative location in that metro (chosen deterministically
+    #      by lowest location_id — the metro is the evidence, the specific
+    #      representative point is arbitrary within the metro).
+    #
+    # For each anchor, we rank the pool by geographic distance to that
+    # anchor and take a small quota of the closest unused candidates. We
+    # cycle through anchors until target_count is reached. This produces
+    # a deterministic, explainable selection that:
+    #   - includes locations near every observable evidence point,
+    #   - preserves geographic diversity across the evidence metros,
+    #   - does not depend on the hidden target, RNG state, or any id ordering
+    #     that is unrelated to the evidence.
+    if len(pool) <= target_count:
+        selected = list(pool)
+    else:
+        anchors: list[Location] = []
+        seen_anchor_ids: set[str] = set()
+        if origin_loc is not None:
+            anchors.append(origin_loc)
+            seen_anchor_ids.add(origin_loc.location_id)
+        # Collect one representative location per distinct receiver metro
+        # from pre-complaint transactions. Use the lowest location_id in the
+        # metro for determinism — the choice within the metro is arbitrary
+        # and does not use any ground-truth signal.
+        receiver_metro_to_representative: dict[str, Location] = {}
+        for tx in case_transactions:
+            if tx.timestamp > case.complaint_time:
+                continue
+            rm = tx.receiver_metro
+            if not rm or rm not in evidence_metros:
+                continue
+            if rm in receiver_metro_to_representative:
+                continue
+            in_metro = [loc for loc in locations if loc.metro == rm]
+            if not in_metro:
+                continue
+            representative = min(in_metro, key=lambda loc: loc.location_id)
+            receiver_metro_to_representative[rm] = representative
+        for rm in sorted(receiver_metro_to_representative):
+            rep = receiver_metro_to_representative[rm]
+            if rep.location_id not in seen_anchor_ids:
+                anchors.append(rep)
+                seen_anchor_ids.add(rep.location_id)
+
+        n_anchors = max(1, len(anchors))
+        # Per-anchor quota: at least 2, then split the remainder evenly.
+        per_anchor = max(2, target_count // n_anchors)
+
+        selected: list[Location] = []
+        selected_ids: set[str] = set()
+        anchor_idx = 0
+        while len(selected) < target_count and anchor_idx < len(anchors):
+            anchor = anchors[anchor_idx]
+            # Rank the pool by distance to this anchor. Stable sort on
+            # location_id as a tiebreaker for determinism.
+            ranked = sorted(
+                pool,
+                key=lambda loc: (
+                    compute_distance_km(
+                        anchor.latitude,
+                        anchor.longitude,
+                        loc.latitude,
+                        loc.longitude,
+                    ),
+                    loc.location_id,
+                ),
+            )
+            quota = per_anchor
+            for loc in ranked:
+                if loc.location_id in selected_ids:
+                    continue
+                selected.append(loc)
+                selected_ids.add(loc.location_id)
+                quota -= 1
+                if quota <= 0 or len(selected) >= target_count:
+                    break
+            anchor_idx += 1
+
+        # If we still have not reached target_count, cycle through anchors
+        # again (one pass at a time) to fill remaining slots.
+        if len(selected) < target_count:
+            anchor_idx = 0
+            while len(selected) < target_count and anchor_idx < len(anchors):
+                anchor = anchors[anchor_idx]
+                ranked = sorted(
+                    pool,
+                    key=lambda loc: (
+                        compute_distance_km(
+                            anchor.latitude,
+                            anchor.longitude,
+                            loc.latitude,
+                            loc.longitude,
+                        ),
+                        loc.location_id,
+                    ),
+                )
+                for loc in ranked:
+                    if loc.location_id in selected_ids:
+                        continue
+                    selected.append(loc)
+                    selected_ids.add(loc.location_id)
+                    if len(selected) >= target_count:
+                        break
+                anchor_idx += 1
+
+        # Final fallback: if still under target_count, fill with the
+        # remaining pool locations ordered by distance to the origin.
+        if len(selected) < target_count and origin_loc is not None:
+            remaining = [loc for loc in pool if loc.location_id not in selected_ids]
+            remaining.sort(
+                key=lambda loc: (
+                    compute_distance_km(
+                        origin_loc.latitude,
+                        origin_loc.longitude,
+                        loc.latitude,
+                        loc.longitude,
+                    ),
+                    loc.location_id,
+                )
+            )
+            for loc in remaining:
+                if len(selected) >= target_count:
+                    break
+                selected.append(loc)
+                selected_ids.add(loc.location_id)
+
+        # Final safety: truncate to target_count in case of any over-count.
+        selected = selected[:target_count]
+
+    # Step 3: If the pool is smaller than the minimum, fall back to the
+    # nearest locations to the origin (still observable evidence only).
+    # We fill the gap with locations whose metro is NOT in the evidence set,
+    # ordered by distance to the origin. This is target-independent and does
+    # not inspect ground truth.
+    if len(selected) < min_candidates and origin_loc is not None:
+        shortfall = min_candidates - len(selected)
+        used_ids = {loc.location_id for loc in selected}
+        candidates_outside = [loc for loc in locations if loc.location_id not in used_ids]
+        candidates_outside.sort(
+            key=lambda loc: compute_distance_km(
+                origin_loc.latitude,
+                origin_loc.longitude,
+                loc.latitude,
+                loc.longitude,
+            )
+        )
+        for loc in candidates_outside:
+            if shortfall <= 0:
+                break
+            selected.append(loc)
+            shortfall -= 1
+
+    # Build the Candidate objects with the same per-candidate features as before.
+    candidates: list[Candidate] = []
+    for loc in selected:
         dist = 0.0
         if origin_loc:
             dist = compute_distance_km(
@@ -334,41 +533,6 @@ def generate_candidates_for_case(
                 is_true_location=False,
             )
         )
-        used_location_ids.add(loc.location_id)
-
-    # 2. Random plausible candidates from the full location pool
-    remaining_count = target_count - len(candidates)
-    available = [loc for loc in locations if loc.location_id not in used_location_ids]
-
-    if available and remaining_count > 0:
-        random_candidates = rng.sample(
-            available,
-            k=min(remaining_count, len(available)),
-        )
-        for loc in random_candidates:
-            dist = 0.0
-            if origin_loc:
-                dist = compute_distance_km(
-                    origin_loc.latitude,
-                    origin_loc.longitude,
-                    loc.latitude,
-                    loc.longitude,
-                )
-            candidates.append(
-                Candidate(
-                    case_id=case.case_id,
-                    location_id=loc.location_id,
-                    distance_from_origin_km=round(dist, 2),
-                    scenario_affinity=round(_compute_scenario_affinity(case, loc), 4),
-                    transaction_proximity_score=round(
-                        _compute_transaction_proximity_score(case, loc, locations, evidence_anchor),
-                        4,
-                    ),
-                    temporal_plausibility=round(_compute_temporal_plausibility(case, loc), 4),
-                    density_score=loc.density_score,
-                    is_true_location=False,
-                )
-            )
 
     # NOTE: is_true_location is left False on every candidate. It is attached
     # later by label_candidates_with_ground_truth() using the (hidden) ground

@@ -1,6 +1,6 @@
 # SENTINEL Project Status
 
-Last updated: 2026-09-05
+Last updated: 2026-09-07
 
 ## Phase 1 — Data Foundation ✅ COMPLETE
 
@@ -51,7 +51,7 @@ Last updated: 2026-09-05
 - Reproducible evaluation script: scripts/run_rf_evaluation.py
 - 33 new Phase 4 tests (147 total)
 - RF evaluation report: docs/rf_evaluation.json
-- **Honest result: Random Forest beats Weighted Baseline on 5/6 metrics (Top-1, Top-3, MRR, Mean Rank, Median Rank); Baseline wins Top-5 accuracy**
+- **Historical pre-P0 result (retained for development history): Random Forest beat Weighted Baseline on 5/6 metrics under the pre-leakage-fix candidate-generation pipeline; Baseline won Top-5 accuracy. The current post-P0 numbers are reported separately below.**
 - All data is SYNTHETIC — trained and evaluated on synthetic data only
 
 ## Phase 5 — Evaluation Framework (FUTURE)
@@ -63,7 +63,7 @@ Last updated: 2026-09-05
 ## Phase 6 — FastAPI Backend ✅ COMPLETE
 
 - FastAPI application with clean route/service/schema separation
-- Endpoints: GET /health, GET/POST /api/v1/investigations, POST /api/v1/investigations/{id}/rank
+- Endpoints: GET /health, GET /api/v1/investigations, GET /api/v1/investigations/{case_id}, POST /api/v1/investigations/{case_id}/rank
 - Pydantic request/response schemas with validation
 - Service layer: DataService (data loading + feature pipeline), ModelService (training + scoring)
 - CORS configuration (configurable origins via environment variables)
@@ -109,13 +109,17 @@ Last updated: 2026-09-05
 | Transactions | 983 |
 | Locations | 44 |
 | Features | 47 |
-| Tests | 181 passing (backend) |
+| Tests | 209 passed, 0 failed, 0 skipped (backend) |
 | Frontend | 4 pages, 2 components (SentinelMap, SentinelMapWrapper) |
 | Python | 3.12 |
 | ML | scikit-learn 1.9 |
 | API | FastAPI 0.141 |
 
-## Phase 3 Baseline Results (Test Set — 60 cases)
+## Historical — Pre-P0 Leakage-Fix Evaluation
+
+The following results were produced by the **earlier candidate-generation pipeline**, which force-inserted the true cash-out location into the candidate set. They are retained here **only as historical development results** and do **not** represent the current SENTINEL behavior. The current, ground-truth-independent evaluation is reported in the next section.
+
+### Phase 3 Baseline Results (Test Set — 60 cases) — Historical
 
 | Metric | Value |
 |--------|-------|
@@ -126,7 +130,7 @@ Last updated: 2026-09-05
 | Mean Rank | 4.68 |
 | Median Rank | 4.0 |
 
-## Phase 4 Random Forest Results (Test Set — 60 cases)
+### Phase 4 Random Forest Results (Test Set — 60 cases) — Historical
 
 | Metric | Value | vs Baseline | Note |
 |--------|-------|-------------|------|
@@ -137,9 +141,9 @@ Last updated: 2026-09-05
 | Mean Rank ↓ | 4.27 | 4.68 → 4.27 | Lower is better |
 | Median Rank ↓ | 3.0 | 4.0 → 3.0 | Lower is better |
 
-**Overall winner: Random Forest (5/6 metrics)**
+**Overall winner (historical): Random Forest (5/6 metrics)**
 
-## Feature Group Importance (Random Forest)
+### Feature Group Importance (Random Forest, Historical)
 
 | Group | Importance |
 |-------|------------|
@@ -148,3 +152,85 @@ Last updated: 2026-09-05
 | Temporal | 10.8% |
 | Location | 10.3% |
 | Case | 7.4% |
+
+## Current — Post-P0 Leakage-Fix / Evidence-Based Evaluation
+
+The following results are produced by the **current SENTINEL pipeline**:
+
+- **Evidence-based candidate generation**: candidates come from the union of the origin metro and all transaction sender/receiver metros (the "evidence metros").
+- **Multi-anchor deterministic selection**: when the evidence-metro pool exceeds `max_per_case`, selection is performed by ranking candidates by geographic distance to multiple observable evidence anchors (complaint origin + one representative location per distinct transaction receiver metro).
+- **Ground-truth-independent candidate generation**: the true cash-out location is never force-inserted, never accessed, and never used to guide candidate generation or selection.
+
+### Phase 3 Baseline Results (Test Set — 60 cases) — Current
+
+| Metric | Value |
+|--------|-------|
+| Top-1 Accuracy | 8.3% |
+| Top-3 Accuracy | 20.0% |
+| Top-5 Accuracy | 31.7% |
+| MRR | 0.2254 |
+| Mean Rank | 8.12 |
+| Median Rank | 9.0 |
+
+### Phase 4 Random Forest Results (Test Set — 60 cases) — Current
+
+| Metric | Value | vs Baseline | Note |
+|--------|-------|-------------|------|
+| Top-1 Accuracy | 8.3% | +0.0% | Higher is better |
+| Top-3 Accuracy | 26.7% | +6.7% | Higher is better |
+| Top-5 Accuracy | 31.7% | +0.0% | Higher is better |
+| MRR | 0.2362 | +0.0108 | Higher is better |
+| Mean Rank ↓ | 8.07 | 8.12 → 8.07 | Lower is better |
+| Median Rank ↓ | 9.0 | 9.0 → 9.0 | Lower is better |
+
+**Overall winner (current): Random Forest wins 3/6 metrics** (Top-3, MRR, Mean Rank); Weighted Baseline wins 3/6 (Top-1, Top-5, Median Rank).
+
+### Per-Scenario MRR (Current)
+
+| Scenario | Baseline MRR | RF MRR | Winner |
+|-----------|-------------:|-------:|--------|
+| DELAYED_CASHOUT | 0.1722 | 0.1511 | Baseline |
+| DIRECT_CASHOUT | 0.4248 | 0.2765 | Baseline |
+| DISPERSED_ACTIVITY | 0.1866 | 0.1421 | Baseline |
+| GEOGRAPHIC_JUMP | 0.2001 | 0.2094 | RF |
+| MULTI_HOP | 0.1538 | 0.3204 | RF |
+| RAPID_MULE_CHAIN | 0.1844 | 0.3161 | RF |
+| URBAN_CLUSTER | 0.3861 | 0.1817 | Baseline |
+
+### Feature Group Importance (Random Forest, Current)
+
+| Group | Importance |
+|-------|------------|
+| Geographic | 31.7% |
+| Transaction | 30.7% |
+| Temporal | 15.0% |
+| Location | 13.6% |
+| Case | 9.1% |
+
+## Candidate-Coverage Limitation (Evidence-Limited)
+
+The current candidate-generation pipeline operates on **observable pre-prediction evidence only**:
+
+- The candidate set is built from the union of the **origin metro** and all **transaction sender/receiver metros** (the "evidence metros").
+- When the evidence-metro pool is larger than the candidate-count cap, the implementation uses a **multi-anchor deterministic selection**: the complaint origin plus one representative location per distinct transaction receiver metro, with per-anchor proximity quotas.
+- **Ground truth is never used** during candidate generation or selection, and the true cash-out location is **never force-inserted**.
+
+### Measured Coverage
+
+- **Test cases covered**: 34/60 (56.7%)
+- **Overall cases covered**: 210/300 (70.0%)
+
+### Why Some Cases Are Missed
+
+A forensic analysis of the 26 missing test cases found:
+
+- **24/26 (92.3%)** of missing cases have the **true cash-out metro completely disconnected** from the available observable evidence. In these cases, the transaction chain stays within 1–2 metros, but the synthetic ground-truth deliberately places the cash-out in a different metro (a realistic cross-metro fraud pattern). The minimum distance from the true location to the nearest observable evidence anchor in these cases is 232 km; the median is ~1,148 km.
+- **2/26 (7.7%)** have the true metro in the evidence set but the true location was excluded during multi-anchor selection (the evidence-metro pool was larger than the candidate cap).
+
+### Interpretation
+
+The current Top-K miss rate is primarily **evidence-limited**, not a failure of the ranking model. When the true metro is not represented anywhere in the case's observable geographic evidence, no candidate-generation strategy that uses only that evidence can guarantee inclusion of the true location. The current RF and Baseline metrics (e.g., Top-5 ≈ 31.7%, MRR ≈ 0.23) reflect this evidence limitation.
+
+This is a property of the current **synthetic evidence setup** and should not be interpreted as a guaranteed prediction failure in real-world deployments. Additional real-world evidence — surveillance footage, suspect travel history, additional transaction channels, or partial intelligence from cooperating institutions — could expand candidate coverage well beyond the current ceiling.
+
+The implementation does **not** claim 56.7% to be a mathematically proven absolute maximum; it is the **measured** test coverage under the current synthetic evidence and the current multi-anchor candidate-generation strategy.

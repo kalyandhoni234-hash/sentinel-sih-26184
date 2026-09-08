@@ -55,11 +55,11 @@ SENTINEL is an investigator decision-support system that analyzes synthetic inve
 
 ### Phase 6 — FastAPI Backend ✅
 - FastAPI application with lifespan-based startup
-- Endpoints: GET /health, GET/POST /api/v1/investigations, POST /api/v1/investigations/{id}/rank
+- Endpoints: GET /health, GET /api/v1/investigations, GET /api/v1/investigations/{case_id}, POST /api/v1/investigations/{case_id}/rank
 - Pydantic request/response schemas with validation
 - Service layer: DataService + ModelService
 - CORS configuration (configurable via env vars)
-- 34 API tests
+- 35 API tests
 
 ### Phase 7 — Frontend Dashboard ✅
 - Next.js 14 + React 18 + Tailwind CSS
@@ -103,7 +103,7 @@ python scripts/feature_report.py
 ### Run Tests
 
 ```bash
-# All 203 tests
+# All 209 tests
 pytest -q
 
 # Feature tests only
@@ -158,7 +158,7 @@ SENTINEL/
 │   ├── feature_report.py # Feature sanity report
 │   ├── run_baseline.py   # Baseline evaluation CLI
 │   └── run_rf_evaluation.py  # RF evaluation CLI
-├── tests/                # 203 tests
+├── tests/                # 209 tests
 ├── docs/                 # Documentation
 └── pyproject.toml
 ```
