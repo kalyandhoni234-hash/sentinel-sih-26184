@@ -181,8 +181,10 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
         )
 
     # Clamp risk scores to [0, 1] for schema validation safety
+    # and strip evaluation-only metadata before building response
     for s in scored:
         s["risk_score"] = max(0.0, min(1.0, float(s["risk_score"])))
+        s.pop("is_true_location", None)
 
     # Sort by rank
     scored.sort(key=lambda x: x["rank"])

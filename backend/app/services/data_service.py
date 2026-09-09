@@ -177,7 +177,7 @@ class DataService:
         test_rows = [r for r in self._feature_matrix if r["case_id"] in test_ids]
         return train_rows, test_rows, train_ids, test_ids
 
-    def get_ground_truth_for_case(self, case_id: str) -> dict | None:
+    def _get_ground_truth_for_case(self, case_id: str) -> dict | None:
         """Return ground truth for a case (evaluation only, not exposed via API)."""
         self.load()
         for gt in self._ground_truths:

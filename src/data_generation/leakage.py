@@ -73,12 +73,27 @@ class LeakageChecker:
         """Verify the is_true_location flag is not used as a feature.
 
         The flag should only exist for evaluation, not for model input.
+        We verify that the flag is never True in combination with any
+        forbidden ground-truth field being present on the Candidate schema
+        as a non-metadata field. The Candidate model may carry is_true_location
+        for internal bookkeeping, but no other forbidden field should exist
+        on the Candidate schema.
         """
-        for cand in self.candidates:
-            if cand.is_true_location:
-                # This is expected in the data, but we verify it's marked as evaluation-only
-                pass
-        # The key check: ensure the flag is documented as evaluation-only
+        # Verify no forbidden field (other than is_true_location) exists on Candidate
+        candidate_fields = set(Candidate.model_fields.keys())
+        forbidden_on_candidate = candidate_fields & (self.FORBIDDEN_COLUMNS - {"is_true_location"})
+        if forbidden_on_candidate:
+            self.violations.append(
+                f"LEAKAGE: Candidate model contains forbidden ground-truth fields: {forbidden_on_candidate}"
+            )
+        # Verify is_true_location is a boolean field (evaluation-only metadata),
+        # not a numeric feature that could influence scoring
+        if "is_true_location" in candidate_fields:
+            field_info = Candidate.model_fields["is_true_location"]
+            if field_info.annotation is not bool:
+                self.violations.append(
+                    "LEAKAGE: is_true_location is not a boolean field — it may be usable as a numeric feature"
+                )
 
     def _check_case_fraud_scenario_exposed(self) -> None:
         """Check if fraud_scenario is exposed in candidate features.
@@ -95,19 +110,27 @@ class LeakageChecker:
     def _check_candidate_columns_safe(self) -> None:
         """Verify candidate features don't contain forbidden columns.
 
-        Note: The Candidate Pydantic model defines is_true_location for internal
-        tracking, but it is stripped from model-visible JSON output. This check
-        validates the model schema doesn't leak via fields that shouldn't be
-        features. We check for data-containing forbidden fields, not the schema
-        definition itself.
+        Validates both the Candidate Pydantic schema AND the actual
+        candidate data (from JSONL output) to ensure no forbidden
+        ground-truth fields leak into the candidate set.
         """
-        # The Candidate model includes is_true_location for internal bookkeeping,
-        # but it's removed from model-visible output. We check that no OTHER
-        # forbidden fields exist in the schema.
+        # 1. Check Pydantic schema — no forbidden field should be a schema field
         candidate_fields = set(Candidate.model_fields.keys())
-        other_forbidden = candidate_fields & self.FORBIDDEN_COLUMNS - {"is_true_location"}
+        other_forbidden = candidate_fields & (self.FORBIDDEN_COLUMNS - {"is_true_location"})
         if other_forbidden:
-            self.violations.append(f"LEAKAGE: Candidate contains forbidden fields: {other_forbidden}")
+            self.violations.append(f"LEAKAGE: Candidate schema contains forbidden fields: {other_forbidden}")
+
+        # 2. Check actual candidate data — no forbidden field in output dicts
+        forbidden_data_fields = self.FORBIDDEN_COLUMNS - {"is_true_location"}
+        for i, cand in enumerate(self.candidates):
+            cand_dict = cand if isinstance(cand, dict) else cand.model_dump()
+            leaked = forbidden_data_fields & set(cand_dict.keys())
+            if leaked:
+                self.violations.append(
+                    f"LEAKAGE: Candidate #{i} (case={cand_dict.get('case_id', '?')}) "
+                    f"contains forbidden fields in output: {leaked}"
+                )
+                break  # One violation is enough to flag the pattern
 
     def _check_no_target_derived_distance(self) -> None:
         """Verify no distance-to-target features exist.

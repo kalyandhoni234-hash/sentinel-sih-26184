@@ -100,7 +100,13 @@ def test_ground_truth_is_not_in_model_visible_data():
     from pathlib import Path
 
     cands_path = Path(result["output_dir"]) / "generated" / "candidates.jsonl"
-    forbidden_fields = {"actual_cashout_location_id", "cashout_time", "cashout_metro"}
+    forbidden_fields = {
+        "actual_cashout_location_id",
+        "cashout_time",
+        "cashout_metro",
+        "scenario_used",
+        "selection_probability",
+    }
 
     with open(cands_path) as f:
         for line in f:

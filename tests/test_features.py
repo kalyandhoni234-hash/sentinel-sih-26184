@@ -157,20 +157,58 @@ class TestQueryTimeCutoff:
     """Test that features respect the query-time cutoff."""
 
     def test_no_post_complaint_tx_in_features(self):
-        """Features must not use transactions after complaint_time."""
-        _, meta = _build_matrix_with_raw_data()
+        """Features must not use transactions after complaint_time.
 
+        For cases that have post-complaint transactions, verify that
+        tx_count and tx_total_amount are computed exclusively from
+        pre-complaint transactions (timestamp <= complaint_time).
+        """
+        matrix, meta = _build_matrix_with_raw_data()
+
+        # Index feature rows by case_id (take first row per case — tx features are case-level)
+        case_feature_rows: dict[str, dict] = {}
+        for row in matrix:
+            if row["case_id"] not in case_feature_rows:
+                case_feature_rows[row["case_id"]] = row
+
+        checked = 0
         for case_raw in meta["cases_raw"]:
             cutoff = datetime.fromisoformat(case_raw["complaint_time"])
             case_txs = [t for t in meta["transactions"] if t["case_id"] == case_raw["case_id"]]
             post_txs = [t for t in case_txs if datetime.fromisoformat(t["timestamp"]) > cutoff]
-            # Post-complaint transactions should exist in raw data
-            # but should NOT be used for feature computation
-            # This is validated by the feature logic, not by test
-            # We verify the logic handles this correctly
-            if post_txs:
-                # Features should still be computed from pre-TX only
-                pass  # validated by feature computation tests
+            pre_txs = [t for t in case_txs if datetime.fromisoformat(t["timestamp"]) <= cutoff]
+
+            if not post_txs:
+                continue  # No post-complaint transactions to test against
+
+            case_id = case_raw["case_id"]
+            if case_id not in case_feature_rows:
+                continue
+
+            row = case_feature_rows[case_id]
+
+            # tx_count must equal pre-complaint count, not total count
+            assert row["tx_count"] == len(pre_txs), (
+                f"Case {case_id}: tx_count={row['tx_count']} includes post-complaint TXs; "
+                f"pre-complaint count={len(pre_txs)}, total={len(case_txs)}, "
+                f"post-complaint={len(post_txs)}"
+            )
+
+            # tx_total_amount must equal sum of pre-complaint amounts
+            expected_amount = sum(t["amount"] for t in pre_txs)
+            assert abs(row["tx_total_amount"] - expected_amount) < 0.01, (
+                f"Case {case_id}: tx_total_amount={row['tx_total_amount']} "
+                f"does not match pre-complaint sum={expected_amount}"
+            )
+
+            # hop_count should equal tx_count (chain length)
+            assert row["tx_hop_count"] == row["tx_count"], (
+                f"Case {case_id}: tx_hop_count={row['tx_hop_count']} != tx_count={row['tx_count']}"
+            )
+
+            checked += 1
+
+        assert checked > 0, "No cases with post-complaint transactions found — test is ineffective"
 
     def test_tx_count_matches_pre_complaint(self):
         """tx_count should equal the number of pre-complaint transactions."""

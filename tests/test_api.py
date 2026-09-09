@@ -385,28 +385,40 @@ class TestDeterminism:
 class TestGroundTruthIsolation:
     """Test that ground truth is not used in scoring."""
 
+    FORBIDDEN_FIELDS = [
+        "actual_cashout_location_id",
+        "cashout_time",
+        "cashout_metro",
+        "scenario_used",
+        "selection_probability",
+        "is_true_location",
+    ]
+
+    TEST_CASES = ["CASE_0001", "CASE_0050", "CASE_0100", "CASE_0200", "CASE_0299"]
+
     def test_baseline_scores_independent_of_ground_truth(self, client):
-        """Baseline scores should not depend on ground truth."""
-        data = client.post(
-            "/api/v1/investigations/CASE_0001/rank",
-            json={"model": "weighted_baseline"},
-        ).json()
-        for cand in data["ranked_candidates"]:
-            assert "actual_cashout_location_id" not in cand
-            assert "cashout_time" not in cand
-            assert "cashout_metro" not in cand
-            assert "scenario_used" not in cand
-            assert "selection_probability" not in cand
+        """Baseline scores should not depend on ground truth across multiple cases."""
+        for case_id in self.TEST_CASES:
+            data = client.post(
+                f"/api/v1/investigations/{case_id}/rank",
+                json={"model": "weighted_baseline"},
+            ).json()
+            assert "ranked_candidates" in data, f"No ranked_candidates for {case_id}"
+            for cand in data["ranked_candidates"]:
+                for field in self.FORBIDDEN_FIELDS:
+                    assert field not in cand, f"Layer-C field '{field}' found in baseline response for {case_id}"
 
     def test_rf_scores_independent_of_ground_truth(self, client):
-        """RF scores should not depend on ground truth."""
-        data = client.post(
-            "/api/v1/investigations/CASE_0001/rank",
-            json={"model": "random_forest"},
-        ).json()
-        for cand in data["ranked_candidates"]:
-            assert "actual_cashout_location_id" not in cand
-            assert "cashout_time" not in cand
+        """RF scores should not depend on ground truth across multiple cases."""
+        for case_id in self.TEST_CASES:
+            data = client.post(
+                f"/api/v1/investigations/{case_id}/rank",
+                json={"model": "random_forest"},
+            ).json()
+            assert "ranked_candidates" in data, f"No ranked_candidates for {case_id}"
+            for cand in data["ranked_candidates"]:
+                for field in self.FORBIDDEN_FIELDS:
+                    assert field not in cand, f"Layer-C field '{field}' found in RF response for {case_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -439,6 +451,17 @@ class TestLayerCLeakage:
         data = client.get("/api/v1/investigations/CASE_0001").json()
         for col in self.FORBIDDEN_COLUMNS:
             assert col not in str(data), f"Layer-C column '{col}' found in response"
+
+    def test_is_true_location_absent_from_ranked_candidates(self, client):
+        """is_true_location must never appear in ranked_candidates for any model."""
+        for model in ("weighted_baseline", "random_forest"):
+            for case_id in ["CASE_0001", "CASE_0100", "CASE_0299"]:
+                data = client.post(
+                    f"/api/v1/investigations/{case_id}/rank",
+                    json={"model": model},
+                ).json()
+                for cand in data["ranked_candidates"]:
+                    assert "is_true_location" not in cand, f"is_true_location leaked in {model} response for {case_id}"
 
 
 # ---------------------------------------------------------------------------
