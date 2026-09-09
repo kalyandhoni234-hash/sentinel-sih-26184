@@ -27,6 +27,7 @@ export interface RankedCandidate {
 export interface CaseInfo {
   case_id: string;
   complaint_time: string;
+  analysis_point: string;
   fraud_scenario: string;
   reported_amount: number;
   origin_metro: string;

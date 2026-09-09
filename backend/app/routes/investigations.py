@@ -104,9 +104,11 @@ async def get_investigation(case_id: str) -> CaseInfo:
 
     feature_rows = ds.get_feature_rows_for_case(case_id)
     origin_loc = ds.get_location(case.get("origin_location_id", ""))
+    complaint_time = case["complaint_time"]
     return CaseInfo(
         case_id=case["case_id"],
-        complaint_time=case["complaint_time"],
+        complaint_time=complaint_time,
+        analysis_point=complaint_time,
         fraud_scenario=case["fraud_scenario"],
         reported_amount=case["reported_amount"],
         origin_metro=case["origin_metro"],
@@ -223,9 +225,11 @@ async def rank_candidates(case_id: str, request: RankRequest) -> RankResponse:
 
     # Build case info
     origin_loc = ds.get_location(case.get("origin_location_id", ""))
+    complaint_time = case["complaint_time"]
     case_info = CaseInfo(
         case_id=case["case_id"],
-        complaint_time=case["complaint_time"],
+        complaint_time=complaint_time,
+        analysis_point=complaint_time,
         fraud_scenario=case["fraud_scenario"],
         reported_amount=case["reported_amount"],
         origin_metro=case["origin_metro"],

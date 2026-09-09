@@ -479,10 +479,14 @@ class TestComparisonOutput:
         comparison = compare_models(baseline_results, rf_results)
 
         assert "metric_comparison" in comparison
-        assert "overall_winner" in comparison
-        assert "rf_wins_count" in comparison
-        assert "baseline_wins_count" in comparison
-        assert comparison["overall_winner"] in ("random_forest", "weighted_baseline")
+        assert "scenario_comparison" in comparison
+        expected_metrics = {"top1_accuracy", "top3_accuracy", "top5_accuracy", "mrr", "mean_rank", "median_rank"}
+        assert set(comparison["metric_comparison"].keys()) == expected_metrics
+        for metric, vals in comparison["metric_comparison"].items():
+            assert "baseline" in vals
+            assert "rf" in vals
+            assert "delta" in vals
+            assert "rf_wins" in vals
 
     def test_format_comparison_returns_string(self):
         """format_comparison should return a non-empty string."""

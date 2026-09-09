@@ -24,7 +24,7 @@ def compare_models(
         rf_per_scenario: Optional per-scenario RF results.
 
     Returns:
-        Structured comparison dict with deltas and winner.
+        Structured comparison dict with per-metric deltas.
     """
     metrics = ["top1_accuracy", "top3_accuracy", "top5_accuracy", "mrr", "mean_rank", "median_rank"]
 
@@ -46,11 +46,6 @@ def compare_models(
             "rf_wins": rf_wins,
         }
 
-    # Overall winner
-    rf_wins_count = sum(1 for v in metric_deltas.values() if v["rf_wins"])
-    baseline_wins_count = sum(1 for v in metric_deltas.values() if not v["rf_wins"])
-    overall = "random_forest" if rf_wins_count > baseline_wins_count else "weighted_baseline"
-
     # Per-scenario comparison
     scenario_comparison = {}
     if baseline_per_scenario and rf_per_scenario:
@@ -70,9 +65,6 @@ def compare_models(
 
     return {
         "metric_comparison": metric_deltas,
-        "overall_winner": overall,
-        "rf_wins_count": rf_wins_count,
-        "baseline_wins_count": baseline_wins_count,
         "scenario_comparison": scenario_comparison,
     }
 
@@ -107,14 +99,7 @@ def format_comparison(comparison: dict[str, Any]) -> str:
             d_str = f"{vals['delta']:+.4f}"
         lines.append(f"{display_metric:<25s} {b_str:>10s} {r_str:>10s} {d_str:>10s} {winner:>12s}")
 
-    lines.extend(
-        [
-            "-" * 70,
-            "",
-            f"Overall winner: {comparison['overall_winner'].replace('_', ' ').title()}",
-            f"  RF wins: {comparison['rf_wins_count']}/{comparison['rf_wins_count'] + comparison['baseline_wins_count']} metrics",
-        ]
-    )
+    lines.append("-" * 70)
 
     if comparison.get("scenario_comparison"):
         lines.extend(["", "Per-Scenario MRR Comparison:", "-" * 40])

@@ -11,6 +11,11 @@ import type {
   RankedCandidate,
   CaseInfo,
 } from "@/types/api";
+import {
+  generateAttentionAlerts,
+  type DashboardCandidate,
+  type AttentionAlert,
+} from "@/lib/alerts";
 
 const SentinelMapDashboard = dynamic(
   () =>
@@ -28,6 +33,14 @@ const SentinelMapDashboard = dynamic(
       </div>
     ),
   }
+);
+
+const InvestigatorAttention = dynamic(
+  () =>
+    import("@/components/SentinelMapDashboard").then((m) => ({
+      default: m.InvestigatorAttention,
+    })),
+  { ssr: false }
 );
 
 const SCENARIO_LABELS: Record<string, string> = {
@@ -49,10 +62,6 @@ const SCENARIO_BADGES: Record<string, string> = {
   URBAN_CLUSTER: "badge-blue",
   DISPERSED_ACTIVITY: "badge-green",
 };
-
-interface DashboardCandidate extends RankedCandidate {
-  caseId: string;
-}
 
 function getPriorityLabel(score: number): {
   label: string;
@@ -166,6 +175,12 @@ export default function HomePage() {
   >([]);
   const [mapLoading, setMapLoading] = useState(false);
 
+  // Model comparison data for attention alerts (top 5 cases only)
+  const [modelComparisons, setModelComparisons] = useState<
+    Record<string, { wbTop1: string | undefined; rfTop1: string | undefined }>
+  >({});
+  const [attentionLoading, setAttentionLoading] = useState(false);
+
   // Load health + case list
   useEffect(() => {
     api
@@ -235,6 +250,48 @@ export default function HomePage() {
     });
   }, [cases, dashboardModel]);
 
+  // Fetch model comparisons for top 5 cases (for attention alerts)
+  useEffect(() => {
+    if (cases.length === 0) return;
+
+    const sorted = [...cases].sort(
+      (a, b) =>
+        new Date(b.complaint_time).getTime() -
+        new Date(a.complaint_time).getTime()
+    );
+    const top5 = sorted.slice(0, 5);
+
+    setAttentionLoading(true);
+
+    Promise.allSettled(
+      top5.map((c) =>
+        Promise.all([
+          api.rankCandidates(c.case_id, { model: "weighted_baseline", top_k: 1 }),
+          api.rankCandidates(c.case_id, { model: "random_forest", top_k: 1 }),
+        ]).then(([wbRes, rfRes]) => ({
+          caseId: c.case_id,
+          wbTop1: wbRes.ranked_candidates[0]?.location_id,
+          rfTop1: rfRes.ranked_candidates[0]?.location_id,
+        }))
+      )
+    ).then((results) => {
+      const comparisons: Record<
+        string,
+        { wbTop1: string | undefined; rfTop1: string | undefined }
+      > = {};
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          comparisons[r.value.caseId] = {
+            wbTop1: r.value.wbTop1,
+            rfTop1: r.value.rfTop1,
+          };
+        }
+      }
+      setModelComparisons(comparisons);
+      setAttentionLoading(false);
+    });
+  }, [cases]);
+
   // Derive statistics
   const stats = useMemo(() => {
     const totalCandidates = cases.reduce((s, c) => s + c.num_candidates, 0);
@@ -280,6 +337,10 @@ export default function HomePage() {
       )
       .slice(0, 8);
   }, [cases]);
+
+  const attentionAlerts = useMemo(() => {
+    return generateAttentionAlerts(mapCandidates, modelComparisons);
+  }, [mapCandidates, modelComparisons]);
 
   const error = healthError || casesError;
 
@@ -436,6 +497,11 @@ export default function HomePage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── INVESTIGATOR ATTENTION ── */}
+      {mapCandidates.length > 0 && (
+        <InvestigatorAttention alerts={attentionAlerts} loading={attentionLoading} />
       )}
 
       {/* ── RISK & LOCATION OVERVIEW (MAP) ── */}

@@ -11,14 +11,15 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import Link from "next/link";
-import type { RankedCandidate, CaseInfo } from "@/types/api";
+import type { RankedCandidate, CaseInfo, InvestigationSummary, RankResponse } from "@/types/api";
+import type { DashboardCandidate, AttentionAlert } from "@/lib/alerts";
+import { generateAttentionAlerts } from "@/lib/alerts";
 
 import "leaflet/dist/leaflet.css";
 import "@/lib/leaflet-fix";
 
-interface DashboardCandidate extends RankedCandidate {
-  caseId: string;
-}
+export type { DashboardCandidate, AttentionAlert } from "@/lib/alerts";
+export { generateAttentionAlerts } from "@/lib/alerts";
 
 interface SentinelMapDashboardProps {
   candidates: DashboardCandidate[];
@@ -382,6 +383,153 @@ function MapInner({
         {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
       </button>
     </MapContainer>
+  );
+}
+
+export function AlertIcon({ type }: { type: AttentionAlert["type"] }) {
+  if (type === "high_priority") {
+    return (
+      <svg className="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fillRule="evenodd"
+          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+          clipRule="evenodd"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+      <path
+        fillRule="evenodd"
+        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+export function InvestigatorAttention({
+  alerts,
+  loading,
+}: {
+  alerts: AttentionAlert[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="card">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
+          Investigator Attention
+        </h3>
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-sentinel-500" />
+          Analyzing evidence signals…
+        </div>
+      </div>
+    );
+  }
+
+  if (alerts.length === 0) {
+    return (
+      <div className="card">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
+          Investigator Attention
+        </h3>
+        <p className="text-xs text-gray-500">
+          No alerts requiring immediate attention. All sampled candidates are below
+          priority thresholds.
+        </p>
+      </div>
+    );
+  }
+
+  const highAlerts = alerts.filter((a) => a.priority === "high");
+  const mediumAlerts = alerts.filter((a) => a.priority === "medium");
+
+  return (
+    <div className="card">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-xs font-medium uppercase tracking-wider text-gray-400">
+          Investigator Attention
+        </h3>
+        <span className="rounded-full bg-sentinel-100 px-2 py-0.5 text-[11px] font-medium text-sentinel-700 dark:bg-sentinel-900/40 dark:text-sentinel-300">
+          {alerts.length} alert{alerts.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {highAlerts.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-red-500">
+            Immediate
+          </p>
+          <div className="space-y-2">
+            {highAlerts.map((alert) => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {mediumAlerts.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-amber-500">
+            Recommended Review
+          </p>
+          <div className="space-y-2">
+            {mediumAlerts.map((alert) => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 text-[10px] text-gray-400">
+        Alerts are derived from sampled ranking evidence, not ground-truth data.
+        Review evidence signals before any field action.
+      </p>
+    </div>
+  );
+}
+
+function AlertCard({ alert }: { alert: AttentionAlert }) {
+  return (
+    <div
+      className={`rounded-md border p-2.5 ${
+        alert.priority === "high"
+          ? "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20"
+          : "border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20"
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <AlertIcon type={alert.type} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+              {alert.title}
+            </p>
+            <span
+              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                alert.priority === "high"
+                  ? "bg-red-200 text-red-800 dark:bg-red-900/60 dark:text-red-200"
+                  : "bg-amber-200 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200"
+              }`}
+            >
+              {alert.priority}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400">
+            {alert.description}
+          </p>
+          <Link
+            href={`/investigations/${alert.caseId}`}
+            className="mt-1 inline-block text-[11px] font-medium text-sentinel-600 hover:text-sentinel-800 dark:text-sentinel-400 dark:hover:text-sentinel-300"
+          >
+            View Investigation →
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 

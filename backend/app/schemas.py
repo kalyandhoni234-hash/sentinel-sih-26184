@@ -112,6 +112,13 @@ class CaseInfo(BaseModel):
 
     case_id: str = Field(..., description="Unique case identifier")
     complaint_time: datetime = Field(..., description="When the complaint was filed")
+    analysis_point: datetime = Field(
+        ...,
+        description=(
+            "Temporal boundary for forward-looking analysis. "
+            "Only evidence available at or before this point is used for ranking."
+        ),
+    )
     fraud_scenario: str = Field(..., description="Type of fraud scenario")
     reported_amount: float = Field(..., description="Reported fraud amount in INR")
     origin_metro: str = Field(..., description="Metro area where complaint originated")

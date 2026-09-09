@@ -37,7 +37,6 @@ Last updated: 2026-09-07
 - Case-level train/test split (80/20)
 - Human-readable candidate explanations
 - 41 new Phase 3 tests (114 total)
-- Baseline evaluation report: docs/baseline_evaluation.json
 
 ## Phase 4 — Random Forest ✅ COMPLETE
 

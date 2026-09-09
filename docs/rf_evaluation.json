@@ -1,5 +1,5 @@
 {
-  "evaluation_timestamp": "2026-09-07T22:05:33.641226",
+  "evaluation_timestamp": "2026-09-09T18:25:39.701513",
   "seed": 42,
   "train_cases": 240,
   "test_cases": 60,
@@ -520,9 +520,6 @@
         "rf_wins": false
       }
     },
-    "overall_winner": "weighted_baseline",
-    "rf_wins_count": 3,
-    "baseline_wins_count": 3,
     "scenario_comparison": {
       "DELAYED_CASHOUT": {
         "baseline_mrr": 0.1722,

@@ -1268,6 +1268,21 @@ export default function CaseDetailPage() {
         </div>
       )}
 
+      {/* === ANALYSIS CONTEXT === */}
+      {data && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-[#0a1628]">
+          <p className="text-xs font-medium uppercase tracking-wider text-blue-700 dark:text-blue-300">
+            Forward-Looking Analysis
+          </p>
+          <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+            Analysis point: {formatDate(data.case.analysis_point)} — Evidence
+            available at or before this point is used to generate candidate
+            location priorities. These are investigator review priorities, not
+            guaranteed future withdrawal locations.
+          </p>
+        </div>
+      )}
+
       {/* Loading skeleton for header area */}
       {loading && !data && (
         <div className="space-y-4">
@@ -1588,14 +1603,16 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* === 10. INVESTIGATOR FOCUS === */}
+      {/* === 10. FORWARD-LOOKING INVESTIGATOR PRIORITIES === */}
       {data && topCandidate && (
         <div className="rounded-lg border border-sentinel-200 bg-sentinel-50 p-4">
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-sentinel-600">
-            Investigator Focus
+            Forward-Looking Candidate Priorities
           </h3>
           <p className="mb-3 text-xs text-gray-500">
-            Suggested review priorities based on the available evidence and ranked candidates.
+            Evidence-supported candidate priorities for investigator review.
+            These locations should be prioritized based on currently available
+            evidence — they are not guaranteed future withdrawal locations.
           </p>
           <ol className="space-y-2 text-sm text-gray-700">
             <li className="flex items-start gap-2">
@@ -1603,7 +1620,7 @@ export default function CaseDetailPage() {
                 1
               </span>
               <span>
-                Review the <strong>#1 ranked candidate</strong> at{" "}
+                Highest-priority candidate:{" "}
                 <span className="font-mono text-xs">{topCandidate.location_id}</span>
                 {topCandidate.location && (
                   <> — {topCandidate.location.region}, {topCandidate.location.metro}</>
@@ -1617,7 +1634,8 @@ export default function CaseDetailPage() {
               </span>
               <span>
                 Review the <strong>observed transaction trail</strong> — {data.case.num_transactions} transactions
-                across {data.case.num_accounts_involved} accounts.
+                across {data.case.num_accounts_involved} accounts — to understand
+                the evidence context.
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -1625,15 +1643,15 @@ export default function CaseDetailPage() {
                 3
               </span>
               <span>
-                Review the <strong>geographic relationship</strong> between
+                Examine the <strong>geographic relationship</strong> between
                 transaction metros and ranked candidate locations for spatial
                 context.
               </span>
             </li>
           </ol>
           <p className="mt-3 text-[10px] text-gray-400">
-            These are workflow suggestions for investigator review, not
-            automated actions.
+            These are forward-looking candidate priorities for investigator
+            review, not automated actions or guaranteed outcomes.
           </p>
         </div>
       )}

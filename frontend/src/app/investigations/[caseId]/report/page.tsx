@@ -110,6 +110,12 @@ function CaseOverviewSection({ data }: { data: RankResponse }) {
           </span>
         </div>
         <div className="report-kv">
+          <span className="report-kv-label">Analysis Point</span>
+          <span className="report-kv-value">
+            {formatDate(data.case.analysis_point)}
+          </span>
+        </div>
+        <div className="report-kv">
           <span className="report-kv-label">Origin Metro</span>
           <span className="report-kv-value">{data.case.origin_metro}</span>
         </div>
@@ -424,10 +430,10 @@ function RankedCandidatesSection({
 }) {
   return (
     <div className="report-section">
-      <h2 className="report-section-title">Ranked Candidate Locations</h2>
+      <h2 className="report-section-title">Forward-Looking Candidate Priorities</h2>
       <p className="text-xs text-gray-500 mb-3 italic">
-        Ranked by evidence-based priority score. These are investigation
-        priorities, not guaranteed predictions.
+        Ranked by evidence-based priority score. These are forward-looking
+        investigator review priorities, not guaranteed predictions.
       </p>
 
       <div className="space-y-3">
@@ -527,10 +533,11 @@ function InvestigatorFocusSection({
 }) {
   return (
     <div className="report-section">
-      <h2 className="report-section-title">Investigator Focus</h2>
+      <h2 className="report-section-title">Forward-Looking Candidate Priorities</h2>
       <p className="text-xs text-gray-500 mb-3 italic">
-        Suggested review priorities based on the available evidence and ranked
-        candidates.
+        Evidence-supported candidate priorities for investigator review. These
+        locations should be prioritized based on currently available evidence —
+        they are not guaranteed future withdrawal locations.
       </p>
 
       <ol className="space-y-2">
