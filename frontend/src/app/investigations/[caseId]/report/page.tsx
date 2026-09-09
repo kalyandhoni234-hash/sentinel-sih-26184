@@ -69,6 +69,9 @@ function ReportHeader({ caseId }: { caseId: string }) {
             <span className="text-xl font-bold text-gray-900 print:text-lg">
               SENTINEL
             </span>
+            <span className="rounded bg-sentinel-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-sentinel-700 print:hidden">
+              Intelligence Report
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mt-2 print:text-xl">
             Investigator Intelligence Report
@@ -657,7 +660,7 @@ export default function ReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={{ background: "var(--background)" }}>
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="space-y-6">
             <div className="h-20 skeleton" />
@@ -665,6 +668,9 @@ export default function ReportPage() {
             <div className="h-60 skeleton" />
             <div className="h-40 skeleton" />
           </div>
+          <p className="mt-4 text-center text-xs" style={{ color: "var(--text-muted)" }}>
+            Generating intelligence report...
+          </p>
         </div>
       </div>
     );
@@ -672,9 +678,9 @@ export default function ReportPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={{ background: "var(--background)" }}>
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+          <div className="alert-card alert-high">
             <h2 className="text-lg font-semibold text-red-800">
               Report Generation Failed
             </h2>
@@ -693,13 +699,13 @@ export default function ReportPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={{ background: "var(--background)" }}>
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
-            <h2 className="text-lg font-semibold text-gray-800">
+          <div className="intel-panel p-6">
+            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
               No Data Available
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
               No ranking data available for this case.
             </p>
             <Link
@@ -719,12 +725,16 @@ export default function ReportPage() {
       {/* Top bar — hidden on print */}
       <div className="no-print border-b border-gray-200 bg-gray-50">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link
-            href={`/investigations/${caseId}`}
-            className="text-sm font-medium text-sentinel-600 hover:text-sentinel-700"
-          >
-            Back to Investigation
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/investigations/${caseId}`}
+              className="text-sm font-medium text-sentinel-600 hover:text-sentinel-700"
+            >
+              ← Back to Investigation
+            </Link>
+            <span className="text-gray-300">|</span>
+            <span className="text-xs text-gray-400">Intelligence Report</span>
+          </div>
           <button
             onClick={handlePrint}
             className="rounded-md bg-sentinel-600 px-4 py-2 text-sm font-medium text-white hover:bg-sentinel-700 transition-colors"

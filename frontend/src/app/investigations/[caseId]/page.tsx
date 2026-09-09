@@ -1172,113 +1172,79 @@ export default function CaseDetailPage() {
     <div className="space-y-5">
 
       {/* === 1. INVESTIGATION HEADER === */}
-      <div className="rounded-lg border border-sentinel-200 bg-gradient-to-br from-sentinel-50 to-white p-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="intel-panel">
+        <div className="flex items-start justify-between gap-4 p-5">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-sentinel-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sentinel-700">
-                SENTINEL Investigation
+              <span className="rounded-md bg-sentinel-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                Investigation
               </span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+              <span className="rounded-md px-2 py-0.5 text-[10px] font-medium" style={{ background: "var(--surface-alt)", color: "var(--text-muted)" }}>
                 Synthetic Demo
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">{caseId}</h2>
+            <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{caseId}</h2>
             {data && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`badge text-[10px] ${SCENARIO_BADGES[data.case.fraud_scenario] || "badge-gray"}`}>
                   {data.case.fraud_scenario.replace(/_/g, " ")}
                 </span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                   {formatINR(data.case.reported_amount)}
                 </span>
-                <span className="text-gray-300">·</span>
-                <span className="text-sm text-gray-600">
+                <span style={{ color: "var(--text-muted)" }}>·</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   {data.case.origin_metro}
                 </span>
-                <span className="text-gray-300">·</span>
-                <span className="text-sm text-gray-500">
+                <span style={{ color: "var(--text-muted)" }}>·</span>
+                <span className="text-sm" style={{ color: "var(--text-muted)" }}>
                   {formatDate(data.case.complaint_time)}
                 </span>
               </div>
             )}
           </div>
           <Link href="/investigations" className="btn-secondary shrink-0">
-            Back to Investigations
+            ← Back
           </Link>
         </div>
       </div>
 
       {/* === 2. AT A GLANCE === */}
       {data && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-            At a Glance
-          </h3>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-            <div>
-              <p className="text-[10px] text-gray-400">Scenario</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.case.fraud_scenario.replace(/_/g, " ")}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Complaint Amount</p>
-              <p className="text-sm font-medium text-gray-900">
-                {formatINR(data.case.reported_amount)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Filed</p>
-              <p className="text-sm font-medium text-gray-900">
-                {formatDate(data.case.complaint_time)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Origin Metro</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.case.origin_metro}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Accounts</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.case.num_accounts_involved}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Transactions</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.case.num_transactions}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Candidate Locations</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.case.num_candidates}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400">Ranking Model</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.model_used === "random_forest" ? "Random Forest" : "Weighted Baseline"}
-              </p>
-            </div>
+        <div className="intel-panel">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 sm:grid-cols-4">
+            {[
+              { label: "Scenario", value: data.case.fraud_scenario.replace(/_/g, " ") },
+              { label: "Amount", value: formatINR(data.case.reported_amount) },
+              { label: "Filed", value: formatDate(data.case.complaint_time) },
+              { label: "Origin Metro", value: data.case.origin_metro },
+              { label: "Accounts", value: data.case.num_accounts_involved },
+              { label: "Transactions", value: data.case.num_transactions },
+              { label: "Candidates", value: data.case.num_candidates },
+              { label: "Model", value: data.model_used === "random_forest" ? "Random Forest" : "Weighted Baseline" },
+            ].map((item) => (
+              <div key={item.label}>
+                <p className="section-label">{item.label}</p>
+                <p className="mt-0.5 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{item.value}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* === ANALYSIS CONTEXT === */}
       {data && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-[#0a1628]">
-          <p className="text-xs font-medium uppercase tracking-wider text-blue-700 dark:text-blue-300">
-            Forward-Looking Analysis
-          </p>
-          <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-            Analysis point: {formatDate(data.case.analysis_point)} — Evidence
-            available at or before this point is used to generate candidate
-            location priorities. These are investigator review priorities, not
-            guaranteed future withdrawal locations.
+        <div className="intel-panel border-l-2 border-l-sentinel-500 p-4">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-sentinel-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="section-label">Analysis Point — Forward-Looking Boundary</p>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            Complaint time: <strong>{formatDate(data.case.analysis_point)}</strong> — Only evidence available
+            at or before this point contributes to candidate prioritization. These are investigator review
+            priorities, not guaranteed future withdrawal locations.
           </p>
         </div>
       )}
@@ -1470,32 +1436,34 @@ export default function CaseDetailPage() {
       {data && (
         <>
           {/* Controls */}
-          <div className="flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-4">
+          <div className="flex flex-wrap items-end gap-4 p-4" style={{ borderBottom: "1px solid var(--border)" }}>
             <div>
-              <label className="block text-xs font-medium text-gray-500">Model</label>
+              <label className="section-label">Model</label>
               <select
                 value={model}
                 onChange={(e) => setModel(e.target.value as "weighted_baseline" | "random_forest")}
-                className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                className="mt-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
               >
                 <option value="weighted_baseline">Weighted Baseline</option>
                 <option value="random_forest">Random Forest</option>
               </select>
-              <p className="mt-1 max-w-[220px] text-[10px] leading-tight text-gray-400">
+              <p className="mt-1 max-w-[220px] text-[10px] leading-tight" style={{ color: "var(--text-muted)" }}>
                 {model === "weighted_baseline"
                   ? "Transparent weighted scoring across five evidence groups."
-                  : "Trained ensemble model with differentiated probability scores."}
+                  : "Ensemble model capturing nonlinear interactions among evidence signals."}
               </p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500">Top K</label>
+              <label className="section-label">Top K</label>
               <input
                 type="number"
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
                 min={1}
                 max={100}
-                className="mt-1 w-20 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                className="mt-1 w-20 rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
               />
             </div>
             <button onClick={loadRanking} className="btn-primary relative">
@@ -1504,37 +1472,33 @@ export default function CaseDetailPage() {
                 <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400" />
               )}
             </button>
-            <div className="ml-auto text-xs text-gray-400">
+            <div className="ml-auto text-xs" style={{ color: "var(--text-muted)" }}>
               {data.ranked_candidates.length} of {data.total_candidates} candidates shown
             </div>
           </div>
 
           {/* Map + Candidates */}
-          <div className="flex flex-col gap-4 lg:flex-row">
-            <div className="min-w-0 lg:w-[60%]">
-              <div className="rounded-lg border border-gray-200 bg-white p-2">
-                <p className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                  Candidate Location Map
-                </p>
-                <SentinelMapWrapper
-                  caseInfo={data.case}
-                  candidates={data.ranked_candidates}
-                  highlightedId={highlightedId}
-                />
-                <p className="mt-2 px-2 text-[11px] text-gray-400">
-                  Ranked candidate locations are evidence-based priorities, not
-                  guaranteed predictions. All data is synthetic.
-                </p>
-              </div>
+          <div className="split-view">
+            <div className="p-2">
+              <p className="mb-1 px-2 section-label">
+                Geographic Intelligence
+              </p>
+              <SentinelMapWrapper
+                caseInfo={data.case}
+                candidates={data.ranked_candidates}
+                highlightedId={highlightedId}
+              />
+              <p className="mt-2 px-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
+                Ranked candidate locations are evidence-based priorities, not
+                guaranteed predictions. All data is synthetic.
+              </p>
             </div>
 
-            <div className="flex min-h-0 flex-col lg:w-[40%]">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Ranked Candidate Locations
-                </h3>
+            <div className="flex min-h-0 flex-col">
+              <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                <h3 className="section-label">Ranked Candidates</h3>
               </div>
-              <div className="flex-1 space-y-3 overflow-y-auto pr-1" style={{ maxHeight: "calc(100vh - 220px)" }}>
+              <div className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
                 {data.ranked_candidates.map((c, i) => (
                   <CandidateCard
                     key={c.location_id}
@@ -1553,35 +1517,33 @@ export default function CaseDetailPage() {
 
       {/* === 9B. MODEL COMPARISON === */}
       {data && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <div className="flex items-center justify-between">
+        <div className="intel-panel">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 Model Comparison
               </h3>
-              <p className="mt-0.5 text-xs text-gray-500">
-                Compare rankings from both models side by side.
+              <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                Compare Weighted Baseline vs Random Forest rankings side by side.
               </p>
             </div>
             <button
               onClick={() => {
-                if (!compareMode) {
-                  loadComparison();
-                }
+                if (!compareMode) loadComparison();
                 setCompareMode(!compareMode);
               }}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 compareMode
-                  ? "bg-sentinel-100 text-sentinel-700"
-                  : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  ? "bg-sentinel-100 text-sentinel-700 dark:bg-sentinel-900/40 dark:text-sentinel-300"
+                  : "border text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               }`}
+              style={!compareMode ? { borderColor: "var(--border)" } : undefined}
             >
-              {compareMode ? "Hide Comparison" : "Compare Models"}
+              {compareMode ? "Hide" : "Compare"}
             </button>
           </div>
-
           {compareMode && (
-            <div className="mt-4">
+            <div className="px-4 pb-4">
               {compareLoading ? (
                 <div className="space-y-2">
                   <div className="h-8 skeleton" />
@@ -1594,7 +1556,7 @@ export default function CaseDetailPage() {
                   rfData={compareData.random_forest}
                 />
               ) : (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                   Could not load comparison data. Ensure the backend is running.
                 </p>
               )}
@@ -1605,80 +1567,73 @@ export default function CaseDetailPage() {
 
       {/* === 10. FORWARD-LOOKING INVESTIGATOR PRIORITIES === */}
       {data && topCandidate && (
-        <div className="rounded-lg border border-sentinel-200 bg-sentinel-50 p-4">
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-sentinel-600">
-            Forward-Looking Candidate Priorities
-          </h3>
-          <p className="mb-3 text-xs text-gray-500">
-            Evidence-supported candidate priorities for investigator review.
-            These locations should be prioritized based on currently available
-            evidence — they are not guaranteed future withdrawal locations.
-          </p>
-          <ol className="space-y-2 text-sm text-gray-700">
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-                1
-              </span>
-              <span>
-                Highest-priority candidate:{" "}
-                <span className="font-mono text-xs">{topCandidate.location_id}</span>
-                {topCandidate.location && (
-                  <> — {topCandidate.location.region}, {topCandidate.location.metro}</>
-                )}
-                . Priority score: {topCandidate.risk_score.toFixed(3)}.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-                2
-              </span>
-              <span>
-                Review the <strong>observed transaction trail</strong> — {data.case.num_transactions} transactions
-                across {data.case.num_accounts_involved} accounts — to understand
-                the evidence context.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-                3
-              </span>
-              <span>
-                Examine the <strong>geographic relationship</strong> between
-                transaction metros and ranked candidate locations for spatial
-                context.
-              </span>
-            </li>
-          </ol>
-          <p className="mt-3 text-[10px] text-gray-400">
-            These are forward-looking candidate priorities for investigator
-            review, not automated actions or guaranteed outcomes.
-          </p>
+        <div className="intel-panel">
+          <div className="p-4">
+            <h3 className="section-label mb-2">Forward-Looking Candidate Priorities</h3>
+            <p className="mb-3 text-xs" style={{ color: "var(--text-muted)" }}>
+              Evidence-supported candidate priorities for investigator review.
+              These locations should be prioritized based on currently available
+              evidence — they are not guaranteed future withdrawal locations.
+            </p>
+            <ol className="space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              <li className="flex items-start gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                  1
+                </span>
+                <span>
+                  Highest-priority candidate:{" "}
+                  <span className="font-mono text-xs font-semibold">{topCandidate.location_id}</span>
+                  {topCandidate.location && (
+                    <> — {topCandidate.location.region}, {topCandidate.location.metro}</>
+                  )}
+                  . Priority score: {topCandidate.risk_score.toFixed(3)}.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                  2
+                </span>
+                <span>
+                  Review the <strong>observed transaction trail</strong> — {data.case.num_transactions} transactions
+                  across {data.case.num_accounts_involved} accounts — to understand
+                  the evidence context.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
+                  3
+                </span>
+                <span>
+                  Examine the <strong>geographic relationship</strong> between
+                  transaction metros and ranked candidate locations for spatial
+                  context.
+                </span>
+              </li>
+            </ol>
+          </div>
         </div>
       )}
 
       {/* === 11. DISCLAIMER === */}
       {data && (
-        <div className="card border-yellow-200 bg-yellow-50">
-          <p className="text-xs text-yellow-800">{data.disclaimer}</p>
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900/40 dark:bg-yellow-950/20">
+          <p className="text-[11px] text-yellow-800 dark:text-yellow-400">{data.disclaimer}</p>
         </div>
       )}
 
       {/* === 12. BOTTOM ACTIONS === */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+      <div className="flex flex-wrap items-center gap-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
         <Link href="/investigations" className="btn-secondary">
-          Back to Investigations
+          ← All Cases
         </Link>
         <Link
           href={`/investigations/${caseId}/report`}
-          className="rounded-md bg-sentinel-600 px-4 py-2 text-sm font-medium text-white hover:bg-sentinel-700 transition-colors"
+          className="btn-primary"
         >
-          Generate Intelligence Report
+          Generate Intelligence Report →
         </Link>
         <Link href="/investigations/new" className="btn-secondary">
           New Investigation
-        </Link>
-        <Link href="/health" className="btn-secondary">
-          System Status
         </Link>
       </div>
     </div>

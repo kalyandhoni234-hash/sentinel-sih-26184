@@ -23,49 +23,73 @@ export default function RootLayout({
             __html: `try{var t=localStorage.getItem('sentinel-theme');if(t==='oled')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body>
         <ThemeProvider>
-          <div className="min-h-screen bg-gray-50">
-            <header className="border-b border-gray-200 bg-white">
-              <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="min-h-screen" style={{ background: "var(--background)" }}>
+            {/* ── Intelligence Console Header ── */}
+            <header
+              className="sticky top-0 z-50 border-b"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--surface)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              <div className="mx-auto flex h-12 max-w-[1600px] items-center justify-between px-4 sm:px-6">
+                {/* Left: Identity */}
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded bg-sentinel-600 text-sm font-bold text-white">
-                    S
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-lg font-semibold text-gray-900 leading-tight">
-                      SENTINEL
-                    </h1>
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 hidden sm:block">
-                      Cybercrime Location Intelligence
-                    </span>
-                  </div>
-                </div>
-                <nav className="flex items-center gap-3">
-                  <ThemeToggle />
-                  <Link
-                    href="/investigations/new"
-                    className="btn-primary hidden sm:inline-flex"
-                  >
-                    New Investigation
+                  <Link href="/" className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sentinel-600 text-xs font-bold text-white tracking-tight">
+                      S
+                    </div>
+                    <div className="flex flex-col leading-none">
+                      <span className="text-sm font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+                        SENTINEL
+                      </span>
+                      <span className="text-[9px] font-medium uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
+                        Evidence-Based Decision Support
+                      </span>
+                    </div>
                   </Link>
+                  <span className="ml-2 hidden rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider sm:inline-block" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
+                    Synthetic Data
+                  </span>
+                </div>
+
+                {/* Right: Nav + Controls */}
+                <nav className="flex items-center gap-1">
                   <Link
                     href="/investigations"
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                    className="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     Cases
                   </Link>
                   <Link
                     href="/health"
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                    className="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     Status
+                  </Link>
+                  <div className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
+                  <ThemeToggle />
+                  <Link
+                    href="/investigations/new"
+                    className="btn-primary ml-1 hidden text-xs sm:inline-flex"
+                  >
+                    + New
                   </Link>
                 </nav>
               </div>
             </header>
-            <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+
+            {/* ── Main Content ── */}
+            <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6">
               {children}
             </main>
           </div>

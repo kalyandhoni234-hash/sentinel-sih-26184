@@ -25,10 +25,11 @@ const SentinelMapDashboard = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[350px] w-full items-center justify-center rounded-lg bg-gray-100 sm:h-[400px] lg:h-[450px]">
+      <div className="flex h-[350px] w-full items-center justify-center rounded-lg sm:h-[400px] lg:h-[450px]"
+        style={{ background: "var(--surface-alt)" }}>
         <div className="text-center">
-          <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-sentinel-600" />
-          <p className="text-xs text-gray-500">Loading map...</p>
+          <div className="mx-auto mb-2 h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-sentinel-600" />
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Loading map…</p>
         </div>
       </div>
     ),
@@ -53,7 +54,7 @@ const SCENARIO_LABELS: Record<string, string> = {
   DISPERSED_ACTIVITY: "Dispersed Activity",
 };
 
-const SCENARIO_BADGES: Record<string, string> = {
+const SCENARIO_COLORS: Record<string, string> = {
   DIRECT_CASHOUT: "badge-red",
   RAPID_MULE_CHAIN: "badge-blue",
   MULTI_HOP: "badge-yellow",
@@ -63,84 +64,16 @@ const SCENARIO_BADGES: Record<string, string> = {
   DISPERSED_ACTIVITY: "badge-green",
 };
 
-function getPriorityLabel(score: number): {
-  label: string;
-  color: string;
-  bg: string;
-} {
-  if (score >= 0.7)
-    return {
-      label: "HIGH",
-      color: "text-red-700",
-      bg: "bg-red-100 border-red-200",
-    };
-  if (score >= 0.4)
-    return {
-      label: "MEDIUM",
-      color: "text-amber-700",
-      bg: "bg-amber-100 border-amber-200",
-    };
-  return {
-    label: "LOW",
-    color: "text-green-700",
-    bg: "bg-green-100 border-green-200",
-  };
+function getPriorityClass(score: number) {
+  if (score >= 0.7) return "priority-high";
+  if (score >= 0.4) return "priority-medium";
+  return "priority-low";
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  accent?: string;
-}) {
-  return (
-    <div className="card">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-        {label}
-      </p>
-      <p className={`mt-1 text-2xl font-bold ${accent || "text-gray-900"}`}>
-        {value}
-      </p>
-      <p className="mt-0.5 text-xs text-gray-500">{sub}</p>
-    </div>
-  );
-}
-
-function PriorityBar({
-  label,
-  count,
-  total,
-  color,
-  textColor,
-}: {
-  label: string;
-  count: number;
-  total: number;
-  color: string;
-  textColor: string;
-}) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className={`font-medium ${textColor}`}>{label}</span>
-        <span className="text-gray-500">
-          {count} ({pct}%)
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-        <div
-          className={`h-full rounded-full ${color} transition-all`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
+function getPriorityLabel(score: number) {
+  if (score >= 0.7) return "HIGH";
+  if (score >= 0.4) return "MEDIUM";
+  return "LOW";
 }
 
 type RankingModel = "weighted_baseline" | "random_forest";
@@ -152,9 +85,9 @@ const MODEL_LABELS: Record<RankingModel, string> = {
 
 const MODEL_DESCRIPTIONS: Record<RankingModel, string> = {
   weighted_baseline:
-    "Transparent weighted scoring across five evidence groups. Scores reflect relative risk within a compressed range.",
+    "Transparent weighted scoring across five evidence groups.",
   random_forest:
-    "Trained ensemble model. Produces differentiated probability scores.",
+    "Ensemble model capturing nonlinear interactions among evidence signals.",
 };
 
 export default function HomePage() {
@@ -163,72 +96,38 @@ export default function HomePage() {
   const [healthError, setHealthError] = useState<string | null>(null);
   const [casesError, setCasesError] = useState<string | null>(null);
   const [casesLoading, setCasesLoading] = useState(true);
-
-  // Dashboard ranking model
-  const [dashboardModel, setDashboardModel] =
-    useState<RankingModel>("weighted_baseline");
-
-  // Map data: ranked candidates from top cases
+  const [dashboardModel, setDashboardModel] = useState<RankingModel>("weighted_baseline");
   const [mapCandidates, setMapCandidates] = useState<DashboardCandidate[]>([]);
   const [mapOrigins, setMapOrigins] = useState<
     Pick<CaseInfo, "case_id" | "origin_metro" | "origin_latitude" | "origin_longitude">[]
   >([]);
   const [mapLoading, setMapLoading] = useState(false);
-
-  // Model comparison data for attention alerts (top 5 cases only)
   const [modelComparisons, setModelComparisons] = useState<
     Record<string, { wbTop1: string | undefined; rfTop1: string | undefined }>
   >({});
   const [attentionLoading, setAttentionLoading] = useState(false);
 
-  // Load health + case list
   useEffect(() => {
-    api
-      .getHealth()
-      .then(setHealth)
-      .catch((err) => setHealthError(err.message));
-
-    api
-      .listInvestigations()
-      .then((data) => {
-        setCases(data.investigations);
-        setCasesLoading(false);
-      })
-      .catch((err) => {
-        setCasesError(err.message);
-        setCasesLoading(false);
-      });
+    api.getHealth().then(setHealth).catch((err) => setHealthError(err.message));
+    api.listInvestigations()
+      .then((data) => { setCases(data.investigations); setCasesLoading(false); })
+      .catch((err) => { setCasesError(err.message); setCasesLoading(false); });
   }, []);
 
-  // Load map data from top 20 most recent cases
   useEffect(() => {
     if (cases.length === 0) return;
-
     const sorted = [...cases].sort(
-      (a, b) =>
-        new Date(b.complaint_time).getTime() -
-        new Date(a.complaint_time).getTime()
+      (a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime()
     );
     const topCases = sorted.slice(0, 20);
-
     setMapLoading(true);
-
     Promise.allSettled(
       topCases.map((c) =>
-        api
-          .rankCandidates(c.case_id, { model: dashboardModel, top_k: 5 })
-          .then((res) => ({
-            caseId: c.case_id,
-            res,
-          }))
+        api.rankCandidates(c.case_id, { model: dashboardModel, top_k: 5 }).then((res) => ({ caseId: c.case_id, res }))
       )
     ).then((results) => {
       const candidates: DashboardCandidate[] = [];
-      const origins: Pick<
-        CaseInfo,
-        "case_id" | "origin_metro" | "origin_latitude" | "origin_longitude"
-      >[] = [];
-
+      const origins: Pick<CaseInfo, "case_id" | "origin_metro" | "origin_latitude" | "origin_longitude">[] = [];
       for (const r of results) {
         if (r.status === "fulfilled") {
           const { caseId, res } = r.value;
@@ -243,26 +142,19 @@ export default function HomePage() {
           }
         }
       }
-
       setMapCandidates(candidates);
       setMapOrigins(origins);
       setMapLoading(false);
     });
   }, [cases, dashboardModel]);
 
-  // Fetch model comparisons for top 5 cases (for attention alerts)
   useEffect(() => {
     if (cases.length === 0) return;
-
     const sorted = [...cases].sort(
-      (a, b) =>
-        new Date(b.complaint_time).getTime() -
-        new Date(a.complaint_time).getTime()
+      (a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime()
     );
     const top5 = sorted.slice(0, 5);
-
     setAttentionLoading(true);
-
     Promise.allSettled(
       top5.map((c) =>
         Promise.all([
@@ -275,16 +167,10 @@ export default function HomePage() {
         }))
       )
     ).then((results) => {
-      const comparisons: Record<
-        string,
-        { wbTop1: string | undefined; rfTop1: string | undefined }
-      > = {};
+      const comparisons: Record<string, { wbTop1: string | undefined; rfTop1: string | undefined }> = {};
       for (const r of results) {
         if (r.status === "fulfilled") {
-          comparisons[r.value.caseId] = {
-            wbTop1: r.value.wbTop1,
-            rfTop1: r.value.rfTop1,
-          };
+          comparisons[r.value.caseId] = { wbTop1: r.value.wbTop1, rfTop1: r.value.rfTop1 };
         }
       }
       setModelComparisons(comparisons);
@@ -292,21 +178,16 @@ export default function HomePage() {
     });
   }, [cases]);
 
-  // Derive statistics
   const stats = useMemo(() => {
     const totalCandidates = cases.reduce((s, c) => s + c.num_candidates, 0);
     const metros = new Set(cases.map((c) => c.origin_metro));
     const scenarios: Record<string, number> = {};
-    for (const c of cases) {
-      scenarios[c.fraud_scenario] = (scenarios[c.fraud_scenario] || 0) + 1;
-    }
+    for (const c of cases) { scenarios[c.fraud_scenario] = (scenarios[c.fraud_scenario] || 0) + 1; }
     return { totalCandidates, metroCount: metros.size, scenarios };
   }, [cases]);
 
   const priorityStats = useMemo(() => {
-    let high = 0,
-      medium = 0,
-      low = 0;
+    let high = 0, medium = 0, low = 0;
     for (const c of mapCandidates) {
       if (c.risk_score >= 0.7) high++;
       else if (c.risk_score >= 0.4) medium++;
@@ -316,7 +197,6 @@ export default function HomePage() {
   }, [mapCandidates]);
 
   const topLocations = useMemo(() => {
-    // Get the #1 ranked candidate from each case that has been ranked
     const seen = new Set<string>();
     const tops: DashboardCandidate[] = [];
     for (const c of mapCandidates) {
@@ -330,11 +210,7 @@ export default function HomePage() {
 
   const recentCases = useMemo(() => {
     return [...cases]
-      .sort(
-        (a, b) =>
-          new Date(b.complaint_time).getTime() -
-          new Date(a.complaint_time).getTime()
-      )
+      .sort((a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime())
       .slice(0, 8);
   }, [cases]);
 
@@ -345,61 +221,30 @@ export default function HomePage() {
   const error = healthError || casesError;
 
   return (
-    <div className="space-y-6">
-      {/* ── HEADER ── */}
-      <div className="rounded-lg border border-sentinel-200 bg-gradient-to-br from-sentinel-50 to-white p-5 dark:border-sentinel-800 dark:from-[#0a0f1e] dark:to-[#000000]">
-        <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sentinel-600 text-lg font-bold text-white">
-            S
-          </div>
-          <div className="flex-1 space-y-1.5">
-            <h2 className="text-lg font-bold text-gray-900">
-              SENTINEL Command Center
-            </h2>
-            <p className="max-w-2xl text-sm leading-relaxed text-gray-600">
-              Evidence-based cybercrime investigation decision support.
-              Ranked candidate locations derived from transaction chains, account
-              activity, and geographic patterns available at complaint time.
-            </p>
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span className="rounded-full bg-sentinel-100 px-2 py-0.5 text-[10px] font-medium text-sentinel-700">
-                Investigator Decision Support
-              </span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-                Synthetic Data Demo
-              </span>
-            </div>
-          </div>
-          <div className="shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-[#0a0a0a]">
-            <label className="block text-[10px] font-medium uppercase tracking-wider text-gray-400">
-              Ranking Model
-            </label>
-            <select
-              value={dashboardModel}
-              onChange={(e) =>
-                setDashboardModel(e.target.value as RankingModel)
-              }
-              className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-900 focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500 dark:border-gray-600 dark:bg-[#0a0a0a] dark:text-gray-100"
-            >
-              <option value="weighted_baseline">Weighted Baseline</option>
-              <option value="random_forest">Random Forest</option>
-            </select>
-            <p className="mt-1 max-w-[200px] text-[10px] leading-tight text-gray-400">
-              {MODEL_DESCRIPTIONS[dashboardModel]}
-            </p>
-          </div>
-        </div>
+    <div className="space-y-5">
+      {/* ── SYSTEM STATUS BAR ── */}
+      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>
+        <span className="flex items-center gap-1.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${healthError ? "bg-red-500" : "bg-green-500"}`} />
+          {healthError ? "API Offline" : health ? `API v${health.version}` : "Connecting…"}
+        </span>
+        <span className="h-3 w-px" style={{ background: "var(--border)" }} />
+        <span>{cases.length} Synthetic Cases</span>
+        <span className="h-3 w-px" style={{ background: "var(--border)" }} />
+        <span>{MODEL_LABELS[dashboardModel]}</span>
+        <span className="h-3 w-px" style={{ background: "var(--border)" }} />
+        <span>Seed 42 · 5 Metros · 44 Locations</span>
       </div>
 
       {/* ── ERROR ── */}
       {error && (
-        <div className="card border-red-200 bg-red-50">
-          <p className="text-sm text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/20">
+          <p className="text-sm font-medium text-red-800 dark:text-red-400">
             Cannot connect to API: {error}
           </p>
-          <p className="mt-1 text-xs text-red-600">
+          <p className="mt-1 text-xs text-red-600 dark:text-red-500">
             Ensure the backend is running at{" "}
-            <code className="rounded bg-red-100 px-1">
+            <code className="rounded bg-red-100 px-1 dark:bg-red-900/40">
               {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}
             </code>
           </p>
@@ -407,95 +252,71 @@ export default function HomePage() {
       )}
 
       {/* ── INTELLIGENCE OVERVIEW ── */}
-      <div>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-          Intelligence Overview
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <KpiCard
-            label="Investigations"
-            value={casesLoading ? "—" : cases.length}
-            sub="Synthetic cases"
-          />
-          <KpiCard
-            label="Total Candidates"
-            value={casesLoading ? "—" : stats.totalCandidates}
-            sub="Across all cases"
-          />
-          <KpiCard
-            label="High Priority"
-            value={priorityStats.total > 0 ? priorityStats.high : "—"}
-            sub="Score >= 0.7"
-            accent="text-red-600"
-          />
-          <KpiCard
-            label="Medium Priority"
-            value={priorityStats.total > 0 ? priorityStats.medium : "—"}
-            sub="Score 0.4-0.7"
-            accent="text-amber-600"
-          />
-          <KpiCard
-            label="Metro Areas"
-            value={casesLoading ? "—" : stats.metroCount}
-            sub="Origin metros"
-          />
-          <KpiCard
-            label="API Status"
-            value={healthError ? "Error" : health ? "OK" : "—"}
-            sub={
-              health
-                ? `v${health.version}`
-                : healthError
-                  ? "Unreachable"
-                  : "Checking..."
-            }
-            accent={healthError ? "text-red-600" : "text-green-600"}
-          />
+      <div className="intel-panel">
+        <div className="intel-header flex items-center justify-between">
+          <h2 className="section-label">Intelligence Overview</h2>
+          <div className="flex items-center gap-2">
+            <label className="section-label">Model:</label>
+            <select
+              value={dashboardModel}
+              onChange={(e) => setDashboardModel(e.target.value as RankingModel)}
+              className="rounded-md border px-2 py-1 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+              style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+            >
+              <option value="weighted_baseline">Weighted Baseline</option>
+              <option value="random_forest">Random Forest</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            { label: "Cases", value: casesLoading ? "—" : cases.length, sub: "Active investigations" },
+            { label: "Candidates", value: casesLoading ? "—" : stats.totalCandidates, sub: "Total ranked" },
+            { label: "High Priority", value: priorityStats.total > 0 ? priorityStats.high : "—", sub: "Score ≥ 0.7", accent: "text-red-600 dark:text-red-400" },
+            { label: "Medium", value: priorityStats.total > 0 ? priorityStats.medium : "—", sub: "Score 0.4–0.7", accent: "text-amber-600 dark:text-amber-400" },
+            { label: "Metros", value: casesLoading ? "—" : stats.metroCount, sub: "Coverage areas" },
+            { label: "Disagreements", value: Object.keys(modelComparisons).length > 0
+              ? Object.values(modelComparisons).filter(c => c.wbTop1 !== c.rfTop1).length
+              : "—", sub: "Top-1 model diffs" },
+          ].map((kpi) => (
+            <div key={kpi.label} className="intel-section flex flex-col items-center py-4">
+              <div className={`intel-metric-value ${kpi.accent || ""}`}>{kpi.value}</div>
+              <div className="intel-metric-label">{kpi.label}</div>
+              <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{kpi.sub}</div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* ── PRIORITY DISTRIBUTION ── */}
       {priorityStats.total > 0 && (
-        <div className="card">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-            Priority Distribution
-          </h3>
-          <p className="mb-3 text-xs text-gray-500">
-            Based on {priorityStats.total} ranked candidates from{" "}
-            {mapOrigins.length} recent cases ({MODEL_LABELS[dashboardModel]})
-          </p>
-          <div className="space-y-2.5">
-            <PriorityBar
-              label="High Priority"
-              count={priorityStats.high}
-              total={priorityStats.total}
-              color="bg-red-500"
-              textColor="text-red-700"
-            />
-            <PriorityBar
-              label="Medium Priority"
-              count={priorityStats.medium}
-              total={priorityStats.total}
-              color="bg-amber-500"
-              textColor="text-amber-700"
-            />
-            <PriorityBar
-              label="Low Priority"
-              count={priorityStats.low}
-              total={priorityStats.total}
-              color="bg-green-500"
-              textColor="text-green-700"
-            />
-          </div>
-          {priorityStats.high === 0 && priorityStats.medium === 0 && (
-            <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-[#0d0d0d]">
-              <p className="text-[11px] text-gray-500">
-                {dashboardModel === "weighted_baseline"
-                  ? "All sampled candidates fall below the Medium threshold (0.4). The Weighted Baseline model produces relative risk rankings within a compressed score range. Individual investigation pages use per-case ranking to identify the highest-priority candidates within each case."
-                  : "All sampled candidates fall below the Medium threshold (0.4). The Random Forest model produces differentiated probability scores. Individual investigation pages provide detailed candidate-level analysis."}
-              </p>
+        <div className="intel-panel">
+          <div className="intel-section">
+            <h3 className="section-label mb-3">Priority Distribution</h3>
+            <p className="mb-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+              {priorityStats.total} ranked candidates · {mapOrigins.length} recent cases · {MODEL_LABELS[dashboardModel]}
+            </p>
+            <div className="space-y-2">
+              {[
+                { label: "High", count: priorityStats.high, color: "bg-red-500", textColor: "text-red-700 dark:text-red-400" },
+                { label: "Medium", count: priorityStats.medium, color: "bg-amber-500", textColor: "text-amber-700 dark:text-amber-400" },
+                { label: "Low", count: priorityStats.low, color: "bg-green-500", textColor: "text-green-700 dark:text-green-400" },
+              ].map((bar) => {
+                const pct = priorityStats.total > 0 ? Math.round((bar.count / priorityStats.total) * 100) : 0;
+                return (
+                  <div key={bar.label} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`font-medium ${bar.textColor}`}>{bar.label}</span>
+                      <span style={{ color: "var(--text-muted)" }}>{bar.count} ({pct}%)</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "var(--surface-alt)" }}>
+                      <div className={`h-full rounded-full ${bar.color} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -504,241 +325,201 @@ export default function HomePage() {
         <InvestigatorAttention alerts={attentionAlerts} loading={attentionLoading} />
       )}
 
-      {/* ── RISK & LOCATION OVERVIEW (MAP) ── */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Risk &amp; Location Overview
-            </h3>
-            <p className="mt-0.5 text-xs text-gray-500">
-              Ranked candidate locations from available investigations
-            </p>
-          </div>
-          {mapLoading && (
-            <span className="text-xs text-gray-400">Loading map data…</span>
-          )}
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-[#0a0a0a]">
-          <SentinelMapDashboard
-            candidates={mapCandidates}
-            caseOrigins={mapOrigins}
-          />
-          <p className="mt-2 px-2 text-[11px] text-gray-400">
-            Candidate markers indicate ranked priority level, not confirmed
-            cash-out locations. All data is synthetic.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── INVESTIGATION QUEUE ── */}
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Investigation Queue
-            </h3>
-            <Link
-              href="/investigations"
-              className="text-xs font-medium text-sentinel-600 hover:text-sentinel-800"
-            >
-              View All →
-            </Link>
-          </div>
-          {casesLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="card">
-                  <div className="flex items-center gap-3">
-                    <div className="h-4 w-24 skeleton" />
-                    <div className="h-5 w-16 skeleton rounded-full" />
-                    <div className="ml-auto h-4 w-20 skeleton" />
-                  </div>
-                </div>
-              ))}
+      {/* ── MAP + TOP LOCATIONS SPLIT ── */}
+      <div className="split-view">
+        {/* Map */}
+        <div className="intel-panel overflow-hidden">
+          <div className="intel-header flex items-center justify-between">
+            <div>
+              <h3 className="section-label">Geographic Intelligence</h3>
+              <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Ranked candidate locations from available investigations
+              </p>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {recentCases.map((c) => {
-                const badge =
-                  SCENARIO_BADGES[c.fraud_scenario] || "badge-gray";
-                const scenarioLabel =
-                  SCENARIO_LABELS[c.fraud_scenario] ||
-                  c.fraud_scenario.replace(/_/g, " ");
-                return (
-                  <Link
-                    key={c.case_id}
-                    href={`/investigations/${c.case_id}`}
-                    className="card flex items-center gap-3 hover:border-sentinel-300 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-gray-900">
-                          {c.case_id}
-                        </span>
-                        <span className={`badge text-[10px] ${badge}`}>
-                          {scenarioLabel}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
-                        <span>{c.origin_metro}</span>
-                        <span>·</span>
-                        <span>{formatINR(c.reported_amount)}</span>
-                        <span>·</span>
-                        <span>{c.num_candidates} candidates</span>
-                      </div>
-                    </div>
-                    <div className="text-right text-xs text-gray-400">
-                      <div>{formatDate(c.complaint_time)}</div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+            {mapLoading && (
+              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Loading…</span>
+            )}
+          </div>
+          <div className="p-1">
+            <SentinelMapDashboard candidates={mapCandidates} caseOrigins={mapOrigins} />
+          </div>
+          <div className="px-4 py-2.5 text-[10px]" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-subtle)" }}>
+            Candidate markers indicate ranked priority level, not confirmed cash-out locations. All data is synthetic.
+          </div>
         </div>
 
-        {/* ── TOP PRIORITY LOCATIONS ── */}
-        <div>
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-            Top Priority Locations
-          </h3>
-          {topLocations.length === 0 && !mapLoading ? (
-            <div className="card text-center py-6 text-sm text-gray-500">
-              Ranking data loading…
+        {/* Right Panel: Top Locations + Queue */}
+        <div className="space-y-0">
+          {/* Top Priority Locations */}
+          <div className="intel-panel">
+            <div className="intel-header">
+              <h3 className="section-label">Top Priority Locations</h3>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {topLocations.map((c) => {
-                const p = getPriorityLabel(c.risk_score);
-                return (
+            {topLocations.length === 0 && !mapLoading ? (
+              <div className="p-6 text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                Ranking data loading…
+              </div>
+            ) : (
+              <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+                {topLocations.map((c, i) => (
                   <Link
                     key={`${c.caseId}-${c.location_id}`}
                     href={`/investigations/${c.caseId}`}
-                    className="card flex items-center gap-3 hover:border-sentinel-300 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/50"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sentinel-600 text-xs font-bold text-white">
-                      1
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sentinel-600 text-[10px] font-bold text-white">
+                      {i + 1}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-gray-900">
+                        <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
                           {c.location_id}
                         </span>
-                        <span
-                          className={`badge border text-[10px] ${p.bg} ${p.color}`}
-                        >
-                          {p.label}
+                        <span className={`priority-indicator ${getPriorityClass(c.risk_score)}`}>
+                          {getPriorityLabel(c.risk_score)}
                         </span>
                       </div>
                       {c.location && (
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {c.location.location_type} — {c.location.region},{" "}
-                          {c.location.metro}
+                        <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          {c.location.location_type} · {c.location.region}, {c.location.metro}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-semibold text-gray-900">
+                      <div className="text-xs font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
                         {c.risk_score.toFixed(3)}
                       </div>
-                      <div className="text-[10px] text-gray-400">
+                      <div className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
                         {c.caseId}
                       </div>
                     </div>
                   </Link>
-                );
-              })}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Investigation Queue */}
+          <div className="intel-panel">
+            <div className="intel-header flex items-center justify-between">
+              <h3 className="section-label">Investigation Queue</h3>
+              <Link href="/investigations" className="text-[10px] font-medium text-sentinel-600 hover:text-sentinel-800">
+                View All →
+              </Link>
             </div>
-          )}
+            {casesLoading ? (
+              <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-20 skeleton" />
+                      <div className="h-4 w-14 skeleton rounded-full" />
+                      <div className="ml-auto h-4 w-16 skeleton" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+                {recentCases.map((c) => {
+                  const badge = SCENARIO_COLORS[c.fraud_scenario] || "badge-gray";
+                  const scenarioLabel = SCENARIO_LABELS[c.fraud_scenario] || c.fraud_scenario.replace(/_/g, " ");
+                  return (
+                    <Link
+                      key={c.case_id}
+                      href={`/investigations/${c.case_id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/50"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {c.case_id}
+                          </span>
+                          <span className={`badge text-[10px] ${badge}`}>{scenarioLabel}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          <span>{c.origin_metro}</span>
+                          <span>·</span>
+                          <span>{formatINR(c.reported_amount)}</span>
+                          <span>·</span>
+                          <span>{c.num_candidates} candidates</span>
+                        </div>
+                      </div>
+                      <div className="text-right text-[11px]" style={{ color: "var(--text-muted)" }}>
+                        {formatDate(c.complaint_time)}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── SCENARIO DISTRIBUTION ── */}
       {Object.keys(stats.scenarios).length > 0 && (
-        <div className="card">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-400">
-            Fraud Scenario Distribution
-          </h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
-            {Object.entries(stats.scenarios)
-              .sort((a, b) => b[1] - a[1])
-              .map(([scenario, count]) => {
-                const badge = SCENARIO_BADGES[scenario] || "badge-gray";
-                const label =
-                  SCENARIO_LABELS[scenario] ||
-                  scenario.replace(/_/g, " ");
-                return (
-                  <div key={scenario} className="rounded-md border border-gray-100 bg-gray-50 p-2.5 text-center dark:border-gray-700 dark:bg-[#0d0d0d]">
-                    <p className="text-lg font-bold text-gray-900">{count}</p>
-                    <p className="mt-0.5 text-[10px] font-medium text-gray-500">
-                      {label}
-                    </p>
-                  </div>
-                );
-              })}
+        <div className="intel-panel">
+          <div className="intel-section">
+            <h3 className="section-label mb-3">Fraud Scenario Distribution</h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
+              {Object.entries(stats.scenarios)
+                .sort((a, b) => b[1] - a[1])
+                .map(([scenario, count]) => {
+                  const badge = SCENARIO_COLORS[scenario] || "badge-gray";
+                  const label = SCENARIO_LABELS[scenario] || scenario.replace(/_/g, " ");
+                  return (
+                    <div
+                      key={scenario}
+                      className="rounded-md p-2.5 text-center"
+                      style={{ background: "var(--surface-alt)", border: "1px solid var(--border-subtle)" }}
+                    >
+                      <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{count}</p>
+                      <p className="mt-0.5 text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>{label}</p>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── QUICK ACTIONS + SYSTEM STATUS ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ── QUICK ACTIONS ── */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/investigations/new"
-          className="card border-sentinel-200 bg-sentinel-50 hover:border-sentinel-400 transition-colors dark:border-sentinel-800 dark:bg-[#0a0f1e] dark:hover:border-sentinel-600"
+          className="intel-panel flex items-center gap-3 p-4 transition-colors hover:border-sentinel-300 dark:hover:border-sentinel-700"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sentinel-600 text-sm font-bold text-white">
-              +
-            </div>
-            <h3 className="font-semibold text-sentinel-900">New Investigation</h3>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sentinel-600 text-sm font-bold text-white">
+            +
           </div>
-          <p className="mt-2 text-sm text-sentinel-700">
-            Enter complaint information and run the SENTINEL analysis pipeline.
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New Investigation</h3>
+            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Run SENTINEL analysis pipeline</p>
+          </div>
+        </Link>
+        <Link href="/investigations" className="intel-panel p-4 transition-colors hover:border-sentinel-300 dark:hover:border-sentinel-700">
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>All Investigations</h3>
+          <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+            Browse {cases.length} synthetic cases and ranked candidates.
           </p>
         </Link>
-        <Link
-          href="/investigations"
-          className="card hover:border-sentinel-300 transition-colors"
-        >
-          <h3 className="font-semibold text-gray-900">View Investigations</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse all {cases.length} synthetic cases and their ranked
-            candidate locations.
-          </p>
-        </Link>
-        <Link
-          href="/health"
-          className="card hover:border-sentinel-300 transition-colors"
-        >
-          <h3 className="font-semibold text-gray-900">System Status</h3>
+        <Link href="/health" className="intel-panel p-4 transition-colors hover:border-sentinel-300 dark:hover:border-sentinel-700">
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>System Status</h3>
           <div className="mt-2 flex items-center gap-2">
-            <span
-              className={`h-2 w-2 rounded-full ${healthError ? "bg-red-500" : "bg-green-500"}`}
-            />
-            <span className="text-sm text-gray-700">
-              {healthError
-                ? "API Unreachable"
-                : health
-                  ? `API Operational — v${health.version}`
-                  : "Checking…"}
+            <span className={`h-1.5 w-1.5 rounded-full ${healthError ? "bg-red-500" : "bg-green-500"}`} />
+            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              {healthError ? "API Offline" : health ? `Operational · v${health.version}` : "Checking…"}
             </span>
           </div>
-          {health && (
-            <p className="mt-1.5 text-xs text-gray-400">
-              Models: {health.models_available.join(", ")}
-            </p>
-          )}
         </Link>
       </div>
 
       {/* ── DISCLAIMER ── */}
-      <div className="card border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-[#1a1505]">
-        <p className="text-xs text-yellow-800">
-          <strong>Disclaimer:</strong> This is an investigator decision-support
-          tool. Ranked candidates represent evidence-based priority scores, not
-          guaranteed predictions. All data is synthetic for demonstration
-          purposes.
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900/40 dark:bg-yellow-950/20">
+        <p className="text-[11px] text-yellow-800 dark:text-yellow-400">
+          <strong>Disclaimer:</strong> This is an investigator decision-support tool. Ranked candidates represent
+          evidence-based priority scores, not guaranteed predictions. All data is synthetic for demonstration purposes.
         </p>
       </div>
     </div>

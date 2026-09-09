@@ -228,7 +228,7 @@ def test_frontend_uses_safe_label_for_rf():
     """The case-detail page must label RF candidate evidence as
     'Supporting Evidence Signals' (or equivalent safe wording) and not
     claim RF reasoning."""
-    detail = (FRONTEND_DIR / "src" / "app" / "investigations" / "[caseId]" / "page.tsx").read_text()
+    detail = (FRONTEND_DIR / "src" / "app" / "investigations" / "[caseId]" / "page.tsx").read_text(encoding="utf-8")
     assert "Supporting Evidence Signals" in detail or "supporting evidence signals" in detail.lower(), (
         "Frontend case-detail page must label RF evidence with safe wording"
     )
@@ -246,7 +246,7 @@ def test_frontend_uses_safe_label_for_rf():
 def test_frontend_map_renders_explanation_without_renaming():
     """The map popup must render the explanation as-is, not rename it to
     'RF reasoning' or similar."""
-    map_src = (FRONTEND_DIR / "src" / "components" / "SentinelMap.tsx").read_text()
+    map_src = (FRONTEND_DIR / "src" / "components" / "SentinelMap.tsx").read_text(encoding="utf-8")
     assert "c.explanation" in map_src, "Map popup must render explanation text"
     # It must not wrap it in misleading phrasing.
     assert "Random Forest reasoning" not in map_src
