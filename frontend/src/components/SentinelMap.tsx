@@ -152,7 +152,7 @@ function HighlightHandler({
 
 function MapLegend() {
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-3 shadow-md text-xs space-y-1.5">
+    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-3 shadow-md text-xs space-y-1.5 dark:bg-[#0a0a0a]/95 dark:text-gray-300">
       <p className="font-semibold text-gray-700 mb-1">Map Legend</p>
       <div className="flex items-center gap-2">
         <span className="inline-block h-3.5 w-3.5 rounded-full bg-blue-800 border-2 border-white shadow-sm" />

@@ -31,7 +31,7 @@ function getPriorityLabel(score: number): string {
   return "LOW";
 }
 
-function intensityToColor(t: number): string {
+function intensityToRgb(t: number): [number, number, number] {
   const stops: [number, number, number, number][] = [
     [0.0, 78, 121, 167],
     [0.25, 65, 158, 155],
@@ -50,9 +50,15 @@ function intensityToColor(t: number): string {
   }
   const range = upper[0] - lower[0];
   const f = range === 0 ? 0 : (t - lower[0]) / range;
-  const r = Math.round(lower[1] + f * (upper[1] - lower[1]));
-  const g = Math.round(lower[2] + f * (upper[2] - lower[2]));
-  const b = Math.round(lower[3] + f * (upper[3] - lower[3]));
+  return [
+    Math.round(lower[1] + f * (upper[1] - lower[1])),
+    Math.round(lower[2] + f * (upper[2] - lower[2])),
+    Math.round(lower[3] + f * (upper[3] - lower[3])),
+  ];
+}
+
+function intensityToColor(t: number): string {
+  const [r, g, b] = intensityToRgb(t);
   return `rgb(${r},${g},${b})`;
 }
 
@@ -128,14 +134,35 @@ function FitAllBounds({
   return null;
 }
 
-function DashboardMapLegend() {
+function DashboardMapLegend({ showHeatmap }: { showHeatmap: boolean }) {
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-2.5 shadow-md text-xs space-y-1.5">
+    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-2.5 shadow-md text-xs space-y-1.5 dark:bg-[#0a0a0a]/95 dark:text-gray-300">
       <p className="font-semibold text-gray-700 mb-1">Legend</p>
       <div className="flex items-center gap-2">
         <span className="inline-block h-3 w-3 rounded-full bg-blue-800 border-2 border-white shadow-sm" />
         <span className="text-gray-600">Case origin</span>
       </div>
+      {showHeatmap && (
+        <div className="mt-1 pt-1 border-t border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-1">Geographic candidate intensity</p>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="inline-block rounded-full border border-white shadow-sm"
+              style={{ width: 12, height: 12, background: "rgba(78,121,167,0.35)" }}
+            />
+            <span className="text-gray-500">Lower</span>
+            <span className="mx-0.5 text-gray-300">→</span>
+            <span
+              className="inline-block rounded-full border border-white shadow-sm"
+              style={{ width: 24, height: 24, background: "rgba(200,45,45,0.55)" }}
+            />
+            <span className="text-gray-500">Higher</span>
+          </div>
+          <p className="mt-1 text-[9px] text-gray-400 leading-tight">
+            Intensity based on candidate scores and geographic concentration. Does not guarantee a withdrawal location.
+          </p>
+        </div>
+      )}
       <div className="mt-1 pt-1 border-t border-gray-100">
         <p className="text-[10px] text-gray-500 mb-1">Relative candidate score</p>
         <div className="flex items-center gap-1.5">
@@ -171,10 +198,79 @@ function DashboardMapLegend() {
   );
 }
 
+function HeatmapLayer({
+  candidates,
+  getIntensity,
+}: {
+  candidates: DashboardCandidate[];
+  getIntensity: (score: number) => number;
+}) {
+  const map = useMap();
+  const layerRef = useRef<L.LayerGroup | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    if (layerRef.current) {
+      map.removeLayer(layerRef.current);
+      layerRef.current = null;
+    }
+
+    const validCandidates = candidates.filter(
+      (c) => c.location && c.location.latitude != null && c.location.longitude != null
+    );
+
+    if (validCandidates.length === 0) return;
+
+    const layer = L.layerGroup();
+
+    for (const c of validCandidates) {
+      const intensity = getIntensity(c.risk_score);
+      const [r, g, b] = intensityToRgb(intensity);
+      const rgb = `${r},${g},${b}`;
+      const radius = 12000 + intensity * 28000;
+      const opacity = 0.15 + intensity * 0.3;
+
+      L.circleMarker([c.location!.latitude, c.location!.longitude], {
+        radius: 8,
+        fillColor: `rgb(${rgb})`,
+        fillOpacity: opacity,
+        stroke: false,
+        interactive: false,
+      }).addTo(layer);
+
+      L.circleMarker([c.location!.latitude, c.location!.longitude], {
+        radius: radius,
+        fillColor: `rgb(${rgb})`,
+        fillOpacity: opacity * 0.4,
+        stroke: false,
+        interactive: false,
+      }).addTo(layer);
+    }
+
+    layer.addTo(map);
+    layerRef.current = layer;
+
+    return () => {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+    };
+  }, [map, candidates, getIntensity]);
+
+  return null;
+}
+
 function MapInner({
   candidates,
   caseOrigins,
-}: SentinelMapDashboardProps) {
+  showHeatmap,
+  onToggleHeatmap,
+}: SentinelMapDashboardProps & {
+  showHeatmap: boolean;
+  onToggleHeatmap: () => void;
+}) {
   const center: L.LatLngExpression = useMemo(() => {
     if (caseOrigins.length > 0 && caseOrigins[0].origin_latitude != null && caseOrigins[0].origin_longitude != null) {
       return [caseOrigins[0].origin_latitude, caseOrigins[0].origin_longitude];
@@ -214,6 +310,10 @@ function MapInner({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitAllBounds candidates={candidates} caseOrigins={caseOrigins} />
+
+      {showHeatmap && (
+        <HeatmapLayer candidates={candidates} getIntensity={getIntensity} />
+      )}
 
       {caseOrigins.map((o) =>
         o.origin_latitude != null && o.origin_longitude != null ? (
@@ -272,7 +372,15 @@ function MapInner({
         ) : null
       )}
 
-      <DashboardMapLegend />
+      <DashboardMapLegend showHeatmap={showHeatmap} />
+
+      <button
+        type="button"
+        onClick={onToggleHeatmap}
+        className="absolute top-3 left-3 z-[1000] rounded-md bg-white/95 px-2.5 py-1.5 shadow-md text-xs font-medium text-gray-700 hover:bg-white transition-colors border border-gray-200 dark:bg-[#0a0a0a]/95 dark:text-gray-300 dark:hover:bg-[#141414] dark:border-gray-700"
+      >
+        {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+      </button>
     </MapContainer>
   );
 }
@@ -280,14 +388,19 @@ function MapInner({
 export function SentinelMapDashboard(props: SentinelMapDashboardProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [tileError, setTileError] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   const handleTileError = useCallback(() => {
     setTileError(true);
   }, []);
 
+  const handleToggleHeatmap = useCallback(() => {
+    setShowHeatmap((prev) => !prev);
+  }, []);
+
   return (
     <div ref={mapRef} className="relative h-[350px] w-full sm:h-[400px] lg:h-[450px]">
-      <MapInner {...props} />
+      <MapInner {...props} showHeatmap={showHeatmap} onToggleHeatmap={handleToggleHeatmap} />
       {tileError && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 shadow-sm text-xs text-yellow-800 max-w-xs text-center">
           Map tiles could not be loaded.

@@ -124,7 +124,7 @@ function PriorityBar({
           {count} ({pct}%)
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+      <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
         <div
           className={`h-full rounded-full ${color} transition-all`}
           style={{ width: `${pct}%` }}
@@ -286,7 +286,7 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       {/* ── HEADER ── */}
-      <div className="rounded-lg border border-sentinel-200 bg-gradient-to-br from-sentinel-50 to-white p-5">
+      <div className="rounded-lg border border-sentinel-200 bg-gradient-to-br from-sentinel-50 to-white p-5 dark:border-sentinel-800 dark:from-[#0a0f1e] dark:to-[#000000]">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sentinel-600 text-lg font-bold text-white">
             S
@@ -309,7 +309,7 @@ export default function HomePage() {
               </span>
             </div>
           </div>
-          <div className="shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+          <div className="shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-[#0a0a0a]">
             <label className="block text-[10px] font-medium uppercase tracking-wider text-gray-400">
               Ranking Model
             </label>
@@ -318,7 +318,7 @@ export default function HomePage() {
               onChange={(e) =>
                 setDashboardModel(e.target.value as RankingModel)
               }
-              className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-900 focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+              className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-900 focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500 dark:border-gray-600 dark:bg-[#0a0a0a] dark:text-gray-100"
             >
               <option value="weighted_baseline">Weighted Baseline</option>
               <option value="random_forest">Random Forest</option>
@@ -427,7 +427,7 @@ export default function HomePage() {
             />
           </div>
           {priorityStats.high === 0 && priorityStats.medium === 0 && (
-            <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-2.5">
+            <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-[#0d0d0d]">
               <p className="text-[11px] text-gray-500">
                 {dashboardModel === "weighted_baseline"
                   ? "All sampled candidates fall below the Medium threshold (0.4). The Weighted Baseline model produces relative risk rankings within a compressed score range. Individual investigation pages use per-case ranking to identify the highest-priority candidates within each case."
@@ -453,7 +453,7 @@ export default function HomePage() {
             <span className="text-xs text-gray-400">Loading map data…</span>
           )}
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-[#0a0a0a]">
           <SentinelMapDashboard
             candidates={mapCandidates}
             caseOrigins={mapOrigins}
@@ -603,7 +603,7 @@ export default function HomePage() {
                   SCENARIO_LABELS[scenario] ||
                   scenario.replace(/_/g, " ");
                 return (
-                  <div key={scenario} className="rounded-md border border-gray-100 bg-gray-50 p-2.5 text-center">
+                  <div key={scenario} className="rounded-md border border-gray-100 bg-gray-50 p-2.5 text-center dark:border-gray-700 dark:bg-[#0d0d0d]">
                     <p className="text-lg font-bold text-gray-900">{count}</p>
                     <p className="mt-0.5 text-[10px] font-medium text-gray-500">
                       {label}
@@ -619,7 +619,7 @@ export default function HomePage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/investigations/new"
-          className="card border-sentinel-200 bg-sentinel-50 hover:border-sentinel-400 transition-colors"
+          className="card border-sentinel-200 bg-sentinel-50 hover:border-sentinel-400 transition-colors dark:border-sentinel-800 dark:bg-[#0a0f1e] dark:hover:border-sentinel-600"
         >
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sentinel-600 text-sm font-bold text-white">
@@ -667,7 +667,7 @@ export default function HomePage() {
       </div>
 
       {/* ── DISCLAIMER ── */}
-      <div className="card border-yellow-200 bg-yellow-50">
+      <div className="card border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-[#1a1505]">
         <p className="text-xs text-yellow-800">
           <strong>Disclaimer:</strong> This is an investigator decision-support
           tool. Ranked candidates represent evidence-based priority scores, not
