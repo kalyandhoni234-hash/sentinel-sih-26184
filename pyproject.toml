@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sentinel"
 version = "0.1.0"
-description = "SENTINEL - Predictive Analytics Framework for Cybercrime Complaints (SIH 2026 MVP)"
+description = "SENTINEL - Evidence-Based Decision-Support Framework for Cybercrime Complaints (SIH 2026 MVP)"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",

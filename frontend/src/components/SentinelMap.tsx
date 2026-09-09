@@ -261,7 +261,7 @@ function MapInner({
                   {c.location.metro}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Risk score: {c.risk_score.toFixed(3)}
+                  Priority score: {c.risk_score.toFixed(3)}
                 </p>
                 {c.explanation && (
                   <p className="text-xs text-gray-500 mt-2 border-t pt-2">

@@ -1,6 +1,6 @@
 # Contributing to SENTINEL
 
-Thank you for contributing to SENTINEL — the SIH 2026 Predictive Analytics Framework for Cybercrime Complaints.
+Thank you for contributing to SENTINEL — the SIH 2026 Evidence-Based Decision-Support Framework for Cybercrime Complaints.
 
 ## Branches
 

@@ -2,7 +2,11 @@
 
 ## Problem Statement
 
-Development of a Predictive Analytics Framework for Cybercrime Complaints to Forecast Likely Cash Withdrawal Locations in Advance, Enabling Generation of Actionable Intelligence for Timely and Proactive Cybercrime Intervention.
+The official SIH 2026 Problem Statement reads:
+
+> Development of a Predictive Analytics Framework for Cybercrime Complaints to Forecast Likely Cash Withdrawal Locations in Advance, Enabling Generation of Actionable Intelligence for Timely and Proactive Cybercrime Intervention.
+
+SENTINEL addresses this as an investigator decision-support and intelligence-ranking system — it does not implement proactive forecasting.
 
 **SIH Problem Statement ID:** 26184
 
@@ -14,7 +18,7 @@ SENTINEL is an **investigator decision-support and intelligence-ranking system**
 
 - An exact future-location predictor
 - A replacement for investigators
-- Integrated with live NCRP data
+- NOT integrated with live NCRP data (uses synthetic data only)
 - Using confidential banking data
 - Making autonomous law-enforcement decisions
 
@@ -206,8 +210,7 @@ SENTINEL/
 │   ├── FEATURE_CONTRACT.md
 │   ├── PROJECT_STATUS.md
 │   ├── DEVELOPMENT_WORKFLOW.md
-│   ├── baseline_evaluation.json  # Phase 3 evaluation results
-│   ├── rf_evaluation.json        # Phase 4 evaluation results
+│   ├── rf_evaluation.json        # Phase 4 evaluation results (authoritative)
 │   └── MVP_ARCHITECTURE.md
 ├── .github/              # CI, PR/issue templates
 └── pyproject.toml

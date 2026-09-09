@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="SENTINEL API",
     description=(
-        "Predictive Analytics Framework for Cybercrime Complaints. "
+        "Evidence-Based Decision-Support Framework for Cybercrime Complaints. "
         "Investigator decision-support tool for ranking candidate cash-out locations. "
         "All data is synthetic for demonstration purposes."
     ),

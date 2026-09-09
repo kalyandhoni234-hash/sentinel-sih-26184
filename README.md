@@ -1,6 +1,6 @@
 # SENTINEL
 
-**Predictive Analytics Framework for Cybercrime Complaints**
+**Evidence-Based Decision-Support Framework for Cybercrime Complaints**
 
 SIH 2026 — Problem Statement ID: 26184
 

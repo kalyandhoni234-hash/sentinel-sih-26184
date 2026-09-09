@@ -87,7 +87,7 @@ class RankedCandidate(BaseModel):
         ...,
         ge=0.0,
         le=1.0,
-        description="Model risk score (higher = more likely cash-out candidate)",
+        description="Evidence-based ranking score (higher = stronger evidence-suggestive candidate)",
     )
     model_used: str = Field(..., description="Model used for scoring")
     explanation: str = Field(
