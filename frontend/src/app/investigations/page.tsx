@@ -1,29 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatINR, formatDate } from "@/lib/format";
+import { SCENARIO_BADGES, scenarioLabel } from "@/lib/labels";
 import type { InvestigationSummary } from "@/types/api";
 
-const SCENARIO_COLORS: Record<string, string> = {
-  DIRECT_CASHOUT: "badge-red",
-  RAPID_MULE_CHAIN: "badge-blue",
-  MULTI_HOP: "badge-yellow",
-  GEOGRAPHIC_JUMP: "badge-green",
-  DELAYED_CASHOUT: "badge-yellow",
-  URBAN_CLUSTER: "badge-blue",
-  DISPERSED_ACTIVITY: "badge-green",
-};
+/**
+ * Investigation Queue — the investigator's starting point.
+ *
+ * Dense, scannable case list with technical (monospace) case identity,
+ * prominent + NEW INVESTIGATION action. All rows come from the
+ * authoritative GET /investigations response; no fabricated case facts.
+ */
+
+type SortKey = "complaint_time" | "reported_amount" | "num_candidates";
+
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "high-value", label: "High Value" },
+  { key: "many-candidates", label: "Many Candidates" },
+  { key: "recent", label: "Most Recent 25" },
+] as const;
+
+/** Number of newest cases (by complaint time) shown by the "Most Recent 25" filter. */
+const RECENT_COUNT = 25;
+
+function qualifies(
+  c: InvestigationSummary,
+  filter: (typeof FILTERS)[number]["key"],
+  recentCaseIds: Set<string>
+): boolean {
+  switch (filter) {
+    case "high-value":
+      return c.reported_amount >= 500000;
+    case "many-candidates":
+      return c.num_candidates >= 40;
+    case "recent":
+      // The dataset is historical (fixed 2025 complaint dates), so "recent"
+      // means the newest records by complaint time — not wall-clock recency,
+      // which would make this filter permanently empty.
+      return recentCaseIds.has(c.case_id);
+    default:
+      return true;
+  }
+}
 
 export default function InvestigationsPage() {
   const [cases, setCases] = useState<InvestigationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<
-    "complaint_time" | "reported_amount" | "num_candidates"
-  >("complaint_time");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
+  const [sortBy, setSortBy] = useState<SortKey>("complaint_time");
+
+  // Case ids of the RECENT_COUNT newest records by complaint time — used by
+  // the "Most Recent 25" filter (see qualifies).
+  const recentCaseIds = useMemo(() => {
+    const newest = [...cases]
+      .sort(
+        (a, b) =>
+          new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime()
+      )
+      .slice(0, RECENT_COUNT);
+    return new Set(newest.map((c) => c.case_id));
+  }, [cases]);
 
   useEffect(() => {
     api
@@ -36,49 +78,36 @@ export default function InvestigationsPage() {
   const filtered = cases
     .filter(
       (c) =>
-        c.case_id.toLowerCase().includes(search.toLowerCase()) ||
-        c.fraud_scenario.toLowerCase().includes(search.toLowerCase()) ||
-        c.origin_metro.toLowerCase().includes(search.toLowerCase())
+        qualifies(c, filter, recentCaseIds) &&
+        (c.case_id.toLowerCase().includes(search.toLowerCase()) ||
+          c.fraud_scenario.toLowerCase().includes(search.toLowerCase()) ||
+          c.origin_metro.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
-      if (sortBy === "reported_amount")
-        return b.reported_amount - a.reported_amount;
-      if (sortBy === "num_candidates")
-        return b.num_candidates - a.num_candidates;
-      return (
-        new Date(b.complaint_time).getTime() -
-        new Date(a.complaint_time).getTime()
-      );
+      if (sortBy === "reported_amount") return b.reported_amount - a.reported_amount;
+      if (sortBy === "num_candidates") return b.num_candidates - a.num_candidates;
+      return new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime();
     });
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <div>
-          <div className="h-7 w-40 skeleton" />
-          <div className="mt-1 h-4 w-24 skeleton" />
-        </div>
+        <div className="h-7 w-52 skeleton" />
         <div className="flex gap-3">
           <div className="h-9 flex-1 skeleton" />
           <div className="h-9 w-40 skeleton" />
         </div>
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="bg-gray-50 px-4 py-3">
-            <div className="flex gap-16">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-3 w-16 skeleton" />
-              ))}
-            </div>
-          </div>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-16 border-t border-gray-100 px-4 py-3">
+        <div className="overflow-hidden rounded-lg border border-sentinel-border bg-sentinel-surface">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-16 border-t border-sentinel-border-subtle px-4 py-2.5"
+            >
               <div className="h-4 w-24 skeleton" />
-              <div className="h-5 w-28 skeleton rounded-full" />
+              <div className="h-4 w-28 skeleton rounded-full" />
               <div className="h-4 w-16 skeleton" />
               <div className="h-4 w-16 skeleton" />
-              <div className="h-4 w-8 skeleton" />
-              <div className="h-4 w-28 skeleton" />
-              <div className="h-4 w-10 skeleton" />
+              <div className="h-4 w-20 skeleton" />
             </div>
           ))}
         </div>
@@ -96,25 +125,50 @@ export default function InvestigationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header — queue identity + primary action */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Investigations</h2>
-          <p className="text-sm text-gray-500">{cases.length} cases total</p>
+          <h1 className="text-lg font-bold uppercase tracking-[0.08em] text-sentinel-text">
+            Investigation Queue
+          </h1>
+          <p className="mt-0.5 text-xs text-sentinel-text-muted">
+            {cases.length} synthetic cases awaiting investigator review
+          </p>
         </div>
+        <Link href="/investigations/new" className="btn-primary text-xs">
+          + New Investigation
+        </Link>
       </div>
 
-      <div className="flex gap-3">
+      {/* Controls: search + filters + sort */}
+      <div className="flex flex-wrap items-center gap-2">
         <input
           type="text"
           placeholder="Search by ID, scenario, or metro..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+          className="min-w-[220px] flex-1 rounded-md border border-sentinel-border bg-sentinel-surface px-3 py-2 text-sm text-sentinel-text placeholder:text-sentinel-text-muted focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500"
         />
+        <div className="flex overflow-hidden rounded-md border border-sentinel-border">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-3 py-2 text-xs font-medium transition-colors ${
+                filter === f.key
+                  ? "text-white"
+                  : "text-sentinel-text-secondary hover:bg-sentinel-surface-alt"
+              }`}
+              style={filter === f.key ? { background: "var(--accent)" } : undefined}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500"
+          onChange={(e) => setSortBy(e.target.value as SortKey)}
+          className="rounded-md border border-sentinel-border bg-sentinel-surface px-3 py-2 text-sm text-sentinel-text focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500"
         >
           <option value="complaint_time">Sort by Date</option>
           <option value="reported_amount">Sort by Amount</option>
@@ -122,64 +176,58 @@ export default function InvestigationsPage() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      {/* Queue table — dense, technical; scrolls horizontally on narrow
+          screens instead of being clipped by the panel. */}
+      <div className="overflow-x-auto rounded-lg border border-sentinel-border bg-sentinel-surface">
+        <table className="min-w-full divide-y divide-sentinel-border">
+          <thead className="bg-sentinel-surface-alt">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Case ID
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Scenario
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Amount
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Metro
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Candidates
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Filed
-              </th>
-              <th className="px-4 py-3" />
+              {["Case ID", "Type", "Amount", "Metro", "Candidates", "Filed", ""].map(
+                (h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-sentinel-text-muted"
+                  >
+                    {h}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-sentinel-border-subtle">
             {filtered.map((c) => (
-              <tr key={c.case_id} className="hover:bg-gray-50">
-                <td className="whitespace-nowrap px-4 py-3 font-mono text-sm font-medium text-gray-900">
-                  {c.case_id}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={
-                      SCENARIO_COLORS[c.fraud_scenario] || "badge-gray"
-                    }
-                  >
-                    {c.fraud_scenario}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                  {formatINR(c.reported_amount)}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                  {c.origin_metro}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                  {c.num_candidates}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                  {formatDate(c.complaint_time)}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
+              <tr key={c.case_id} className="group transition-colors hover:bg-sentinel-surface-alt">
+                <td className="whitespace-nowrap px-4 py-2.5">
                   <Link
                     href={`/investigations/${c.case_id}`}
-                    className="text-sm font-medium text-sentinel-600 hover:text-sentinel-800"
+                    className="font-mono text-sm font-semibold text-sentinel-text group-hover:underline"
                   >
-                    Rank
+                    {c.case_id}
+                  </Link>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className={`badge text-[10px] ${SCENARIO_BADGES[c.fraud_scenario] || "badge-gray"}`}>
+                    {scenarioLabel(c.fraud_scenario)}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 font-mono text-sm text-sentinel-text-secondary">
+                  {formatINR(c.reported_amount)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-sm text-sentinel-text-secondary">
+                  {c.origin_metro}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 font-mono text-sm text-sentinel-text-secondary">
+                  {c.num_candidates}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-sentinel-text-muted">
+                  {formatDate(c.complaint_time)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                  <Link
+                    href={`/investigations/${c.case_id}`}
+                    className="text-xs font-medium text-sentinel-600 opacity-0 transition-opacity hover:text-sentinel-800 group-hover:opacity-100"
+                  >
+                    Open →
                   </Link>
                 </td>
               </tr>
@@ -189,8 +237,8 @@ export default function InvestigationsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="py-8 text-center text-sm text-gray-500">
-          No cases match your search.
+        <div className="py-8 text-center text-sm text-sentinel-text-muted">
+          No cases match the current search and filters.
         </div>
       )}
     </div>

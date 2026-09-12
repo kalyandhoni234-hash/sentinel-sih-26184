@@ -9,8 +9,8 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors dark:border-gray-700 dark:bg-[#0a0a0a] dark:text-gray-300 dark:hover:bg-[#141414]"
-      title={theme === "light" ? "Switch to OLED dark mode" : "Switch to light mode"}
+      className="flex items-center gap-1.5 rounded-md border border-sentinel-border bg-sentinel-surface px-2.5 py-1.5 text-xs font-medium text-sentinel-text-secondary shadow-sm hover:bg-sentinel-surface-alt transition-colors dark:text-sentinel-text-muted"
+      title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
     >
       {theme === "light" ? (
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,7 +29,7 @@ export function ThemeToggle() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       )}
-      <span className="hidden sm:inline">{theme === "light" ? "OLED" : "Light"}</span>
+      <span className="hidden sm:inline">{theme === "light" ? "Dark" : "Light"}</span>
     </button>
   );
 }

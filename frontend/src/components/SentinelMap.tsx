@@ -12,35 +12,41 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import type { RankedCandidate, CaseInfo } from "@/types/api";
+import { getPriorityTier } from "@/lib/tiers";
 
 import "leaflet/dist/leaflet.css";
 import "@/lib/leaflet-fix";
 
-interface SentinelMapProps {
+export interface SentinelMapProps {
   caseInfo: CaseInfo;
   candidates: RankedCandidate[];
   highlightedId?: string | null;
+  /** Called when the investigator chooses a candidate from the map popup. */
+  onSelectCandidate?: (locationId: string) => void;
 }
 
+/* ── Marker geometry ────────────────────────────────────────────────────
+   Candidate markers are HOLLOW (evidence = generated/prioritized by
+   SENTINEL); the complaint-origin marker is SOLID (observed evidence).
+   Rank drives size and label weight; tier drives color. Colors read
+   design tokens directly because DivIcons live outside Tailwind's DOM. */
+
 function getRankColor(rank: number): string {
-  if (rank === 1) return "#dc2626";
-  if (rank <= 3) return "#ea580c";
-  if (rank <= 5) return "#ca8a04";
-  return "#6b7280";
+  if (rank === 1) return "var(--danger)";
+  if (rank <= 3) return "var(--warning)";
+  return "var(--text-muted)";
 }
 
 function getRankRadius(rank: number): number {
-  if (rank === 1) return 14;
-  if (rank <= 3) return 11;
-  if (rank <= 5) return 9;
-  return 7;
+  if (rank === 1) return 15;
+  if (rank <= 3) return 12;
+  if (rank <= 5) return 10;
+  return 8;
 }
 
 function createCandidateIcon(rank: number, highlighted: boolean): L.DivIcon {
   const color = getRankColor(rank);
   const size = getRankRadius(rank);
-  const border = highlighted ? `3px solid #1e40af` : "2px solid white";
-  const scale = highlighted ? 1.2 : 1;
 
   return L.divIcon({
     className: "",
@@ -50,18 +56,18 @@ function createCandidateIcon(rank: number, highlighted: boolean): L.DivIcon {
       width: ${size * 2}px;
       height: ${size * 2}px;
       border-radius: 50%;
-      background: ${color};
-      border: ${border};
+      background: var(--surface);
+      border: 2.5px solid ${color};
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: ${color};
       font-weight: 700;
       font-size: ${rank <= 3 ? 11 : 9}px;
-      font-family: system-ui, sans-serif;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      transform: scale(${scale});
-      transition: transform 0.15s ease;
+      ${highlighted ? "box-shadow: 0 0 0 3px var(--accent-dim), 0 0 0 5px var(--accent);" : ""}
+      transition: box-shadow 0.15s ease;
     ">${rank}</div>`,
   });
 }
@@ -69,20 +75,10 @@ function createCandidateIcon(rank: number, highlighted: boolean): L.DivIcon {
 function createOriginIcon(): L.DivIcon {
   return L.divIcon({
     className: "",
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    html: `<div style="
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: #1e40af;
-      border: 3px solid white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    ">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    html: `<div class="geointel-marker-evidence" style="width: 26px; height: 26px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
         <circle cx="12" cy="10" r="3"/>
       </svg>
@@ -152,28 +148,41 @@ function HighlightHandler({
 
 function MapLegend() {
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-3 shadow-md text-xs space-y-1.5 dark:bg-[#0a0a0a]/95 dark:text-gray-300">
-      <p className="font-semibold text-gray-700 mb-1">Map Legend</p>
+    <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/95 p-3 shadow-md text-xs space-y-1.5">
+      <p className="font-semibold text-sentinel-text-secondary mb-1">Map Legend</p>
       <div className="flex items-center gap-2">
-        <span className="inline-block h-3.5 w-3.5 rounded-full bg-blue-800 border-2 border-white shadow-sm" />
-        <span className="text-gray-600">Complaint origin</span>
+        <span
+          className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm"
+          style={{ background: "var(--success)" }}
+        />
+        <span className="text-sentinel-text-secondary">Evidence — complaint origin (observed)</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="inline-block h-3 w-3 rounded-full bg-red-600 border border-white shadow-sm" />
-        <span className="text-gray-600">Rank #1 candidate</span>
+        <span
+          className="inline-block h-3 w-3 rounded-full border-2 shadow-sm"
+          style={{ borderColor: "var(--danger)", background: "var(--surface)" }}
+        />
+        <span className="text-sentinel-text-secondary">Candidate — rank #1</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 border border-white shadow-sm" />
-        <span className="text-gray-600">Rank #2–3 candidates</span>
+        <span
+          className="inline-block h-3 w-3 rounded-full border-2 shadow-sm"
+          style={{ borderColor: "var(--warning)", background: "var(--surface)" }}
+        />
+        <span className="text-sentinel-text-secondary">Candidate — rank #2–3</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="inline-block h-2 w-2 rounded-full bg-yellow-500 border border-white shadow-sm" />
-        <span className="text-gray-600">Rank #4–5 candidates</span>
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full border-2 shadow-sm"
+          style={{ borderColor: "var(--text-muted)", background: "var(--surface)" }}
+        />
+        <span className="text-sentinel-text-secondary">Candidate — rank #4+</span>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-gray-400 border border-white shadow-sm" />
-        <span className="text-gray-600">Other ranked candidates</span>
-      </div>
+      <p className="border-t pt-1.5 text-[10px] leading-snug text-sentinel-text-muted">
+        Solid = observed evidence. Hollow = SENTINEL-ranked candidate.
+        <br />
+        Ranked priority, not a confirmed cash-out location.
+      </p>
     </div>
   );
 }
@@ -192,7 +201,7 @@ function TileErrorBanner({ visible }: { visible: boolean }) {
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 shadow-sm text-xs text-yellow-800 max-w-xs text-center">
       Map tiles could not be loaded. Candidate rankings and location data are
-      shown below the map.
+      shown beside the map.
     </div>
   );
 }
@@ -201,6 +210,7 @@ function MapInner({
   caseInfo,
   candidates,
   highlightedId,
+  onSelectCandidate,
   onTileError,
 }: SentinelMapProps & { onTileError: () => void }) {
   const originPosition: L.LatLngExpression | null =
@@ -231,10 +241,15 @@ function MapInner({
         <Marker position={originPosition} icon={createOriginIcon()}>
           <Popup>
             <div className="text-sm">
-              <p className="font-semibold text-blue-800">Complaint Origin</p>
-              <p className="text-gray-600">{caseInfo.origin_metro}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {caseInfo.fraud_scenario.replace(/_/g, " ")}
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                Observed Location — Evidence
+              </p>
+              <p className="mt-0.5 font-semibold text-sentinel-text">
+                Complaint Origin
+              </p>
+              <p className="text-xs text-sentinel-text-secondary">{caseInfo.origin_metro}</p>
+              <p className="mt-1 font-mono text-[10px] text-sentinel-text-muted">
+                {caseInfo.origin_latitude?.toFixed(4)}, {caseInfo.origin_longitude?.toFixed(4)}
               </p>
             </div>
           </Popup>
@@ -249,24 +264,44 @@ function MapInner({
             icon={createCandidateIcon(c.rank, highlightedId === c.location_id)}
           >
             <Popup>
-              <div className="text-sm max-w-xs">
-                <p className="font-semibold text-gray-900">
+              <div className="text-sm max-w-[220px]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-sentinel-text-muted">
                   Candidate #{c.rank}
                 </p>
-                <p className="font-mono text-xs text-gray-500">
+                <p className="font-mono text-sm font-semibold text-sentinel-text">
                   {c.location_id}
                 </p>
-                <p className="text-gray-600 mt-1">
-                  {c.location.location_type} — {c.location.region},{" "}
-                  {c.location.metro}
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-sentinel-text-secondary">
+                  {getPriorityTier(c.risk_score)} Priority
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Priority score: {c.risk_score.toFixed(3)}
+                <div className="mt-2 flex items-baseline justify-between border-t pt-2">
+                  <span className="text-[10px] uppercase tracking-wider text-sentinel-text-muted">
+                    Ranking Score
+                  </span>
+                  <span className="font-mono text-sm font-bold text-sentinel-text">
+                    {c.risk_score.toFixed(3)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-sentinel-text-muted">
+                  {c.location.location_type} — {c.location.region}, {c.location.metro}
                 </p>
-                {c.explanation && (
-                  <p className="text-xs text-gray-500 mt-2 border-t pt-2">
-                    {c.explanation}
-                  </p>
+                {/* The model's own explanation, rendered as-is (see
+                    test_rf_explanation_honesty contract). Clipped so the
+                    popup stays compact — the full text lives in the
+                    workspace panels. */}
+                <p className="mt-1.5 border-t pt-1.5 text-[10px] leading-snug text-sentinel-text-secondary">
+                  {c.explanation.length > 90 ? `${c.explanation.slice(0, 90)}…` : c.explanation}
+                </p>
+                {onSelectCandidate && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onSelectCandidate(c.location_id);
+                    }}
+                    className="btn-primary mt-2.5 w-full !py-1 text-xs"
+                  >
+                    Select
+                  </button>
                 )}
               </div>
             </Popup>
@@ -288,7 +323,7 @@ export function SentinelMap(props: SentinelMapProps) {
   }, []);
 
   return (
-    <div ref={mapRef} className="relative h-[400px] w-full sm:h-[480px] lg:h-[500px]">
+    <div ref={mapRef} className="relative h-full min-h-[420px] w-full">
       <MapInner {...props} onTileError={handleTileError} />
       <TileErrorBanner visible={tileError} />
     </div>

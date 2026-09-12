@@ -4,65 +4,61 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { formatINR, formatDate } from "@/lib/format";
+import { formatINR, formatDateShort, formatTime, formatTimestampFull } from "@/lib/format";
+import { getPriorityTier } from "@/lib/tiers";
+import { MODEL_LABELS, ACCOUNT_ROLE_LABELS } from "@/lib/labels";
+import {
+  summarizeLedger,
+  orderedLedger,
+  observedMetros,
+  isAfterAnalysisPoint,
+} from "@/lib/timeline";
 import type {
   RankResponse,
   RankedCandidate,
   CaseTransactionsResponse,
-  TransactionInfo,
-  AccountInfo,
 } from "@/types/api";
 
-function getPriorityLabel(score: number): {
-  label: string;
-  color: string;
-  bg: string;
-  border: string;
-} {
-  if (score >= 0.7)
-    return {
-      label: "HIGH PRIORITY",
-      color: "text-red-700",
-      bg: "bg-red-50",
-      border: "border-red-200",
-    };
-  if (score >= 0.4)
-    return {
-      label: "MEDIUM PRIORITY",
-      color: "text-amber-700",
-      bg: "bg-amber-50",
-      border: "border-amber-200",
-    };
-  return {
-    label: "LOW PRIORITY",
-    color: "text-green-700",
-    bg: "bg-green-50",
-    border: "border-green-200",
-  };
-}
+/**
+ * Investigator Case Brief (Phase 7) — a presentation layer over the
+ * existing data. The underlying ranking/report logic is unchanged.
+ *
+ * Sections (per the Phase 7 information architecture):
+ *   CASE IDENTITY → EXECUTIVE SUMMARY → OBSERVED EVIDENCE →
+ *   TRANSACTION TRAIL (condensed) → GEOGRAPHIC CONTEXT →
+ *   CANDIDATE PRIORITIZATION → MODEL / EXPLANATION →
+ *   INVESTIGATOR FOCUS → METHODOLOGY & LIMITATIONS
+ *
+ * Executive-summary rules (claim discipline): the summary is assembled
+ * deterministically from case info, the ledger, and the ranking response.
+ * It never predicts ("will be used next") — it only describes
+ * prioritization ("prioritized for investigator review based on the
+ * available observed evidence and ranking model").
+ *
+ * Model explanation rules (Phase 6, preserved): WB shows its group
+ * scores; RF shows its supporting-evidence explanation. No SHAP, no
+ * confidence, no probability, no fabricated feature importance, and no
+ * unsupported contribution percentages anywhere in the brief.
+ *
+ * Print: the brief is print-first. The app chrome is hidden via
+ * .no-print; section cards avoid page-internal breaks; tables repeat
+ * their headers across page breaks; interactive-only controls are hidden.
+ */
 
-const GROUP_META: Record<string, { label: string }> = {
-  geographic: { label: "Geographic" },
-  transaction: { label: "Transaction" },
-  location: { label: "Location" },
-  temporal: { label: "Temporal" },
-  case: { label: "Case" },
-};
+type RankingModel = "weighted_baseline" | "random_forest";
 
-const ACCOUNT_ROLE_LABELS: Record<string, string> = {
-  VICTIM: "Victim",
-  MULE: "Mule",
-  CASH_OUT: "Cash Out",
-  INTERMEDIATE: "Intermediate",
-  UNKNOWN: "Unknown",
-};
-
-function ReportHeader({ caseId }: { caseId: string }) {
+function BriefHeader({
+  caseId,
+  data,
+}: {
+  caseId: string;
+  data: RankResponse;
+}) {
   return (
     <div className="report-header">
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="mb-1 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-sentinel-600 text-sm font-bold text-white print:h-6 print:w-6 print:text-xs">
               S
             </div>
@@ -70,78 +66,53 @@ function ReportHeader({ caseId }: { caseId: string }) {
               SENTINEL
             </span>
             <span className="rounded bg-sentinel-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-sentinel-700 print:hidden">
-              Intelligence Report
+              Investigator Case Brief
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2 print:text-xl">
-            Investigator Intelligence Report
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 print:text-xl">
+            Investigator Case Brief
           </h1>
         </div>
         <div className="text-right text-xs text-gray-500 print:text-[10px]">
-          <p>Case ID: {caseId}</p>
+          <p className="font-mono">{data.case.case_id || caseId}</p>
           <p>Generated: {new Date().toLocaleString("en-IN")}</p>
           <p className="mt-1 font-medium text-amber-700">
             Synthetic Data — For Demonstration
           </p>
         </div>
       </div>
-    </div>
-  );
-}
 
-function CaseOverviewSection({ data }: { data: RankResponse }) {
-  return (
-    <div className="report-section">
-      <h2 className="report-section-title">Case Overview</h2>
-      <div className="report-grid-4">
+      <div className="report-grid-4 mt-4">
         <div className="report-kv">
-          <span className="report-kv-label">Fraud Scenario</span>
+          <span className="report-kv-label">Case</span>
+          <span className="report-kv-value font-mono">{data.case.case_id}</span>
+        </div>
+        <div className="report-kv">
+          <span className="report-kv-label">Scenario</span>
           <span className="report-kv-value">
             {data.case.fraud_scenario.replace(/_/g, " ")}
           </span>
         </div>
         <div className="report-kv">
-          <span className="report-kv-label">Reported Amount</span>
+          <span className="report-kv-label">Location</span>
+          <span className="report-kv-value">{data.case.origin_metro}</span>
+        </div>
+        <div className="report-kv">
+          <span className="report-kv-label">Filed</span>
           <span className="report-kv-value">
+            {formatDateShort(data.case.complaint_time)}
+          </span>
+        </div>
+        <div className="report-kv">
+          <span className="report-kv-label">Amount</span>
+          <span className="report-kv-value font-mono">
             {formatINR(data.case.reported_amount)}
           </span>
         </div>
         <div className="report-kv">
-          <span className="report-kv-label">Complaint Date</span>
-          <span className="report-kv-value">
-            {formatDate(data.case.complaint_time)}
-          </span>
-        </div>
-        <div className="report-kv">
           <span className="report-kv-label">Analysis Point</span>
-          <span className="report-kv-value">
-            {formatDate(data.case.analysis_point)}
-          </span>
-        </div>
-        <div className="report-kv">
-          <span className="report-kv-label">Origin Metro</span>
-          <span className="report-kv-value">{data.case.origin_metro}</span>
-        </div>
-        <div className="report-kv">
-          <span className="report-kv-label">Accounts Involved</span>
-          <span className="report-kv-value">
-            {data.case.num_accounts_involved}
-          </span>
-        </div>
-        <div className="report-kv">
-          <span className="report-kv-label">Transactions</span>
-          <span className="report-kv-value">{data.case.num_transactions}</span>
-        </div>
-        <div className="report-kv">
-          <span className="report-kv-label">Candidate Locations</span>
-          <span className="report-kv-value">{data.case.num_candidates}</span>
-        </div>
-        <div className="report-kv">
-          <span className="report-kv-label">Ranking Model</span>
-          <span className="report-kv-value">
-            {data.model_used === "random_forest"
-              ? "Random Forest"
-              : "Weighted Baseline"}
+          <span className="report-kv-value font-mono">
+            {formatTimestampFull(data.case.analysis_point)}
           </span>
         </div>
       </div>
@@ -149,117 +120,182 @@ function CaseOverviewSection({ data }: { data: RankResponse }) {
   );
 }
 
-function TransactionEvidenceSection({
+function ExecutiveSummarySection({
+  data,
   txData,
-  txLoading,
 }: {
+  data: RankResponse;
   txData: CaseTransactionsResponse | null;
-  txLoading: boolean;
 }) {
-  if (txLoading) {
-    return (
-      <div className="report-section">
-        <h2 className="report-section-title">
-          Observed Transaction Evidence
-        </h2>
-        <p className="text-sm text-gray-500">Loading transaction data...</p>
-      </div>
+  const c = data.case;
+  const ledger = txData ? summarizeLedger(txData, c.analysis_point) : null;
+  const top = data.ranked_candidates[0] ?? null;
+  const model = MODEL_LABELS[data.model_used] ?? data.model_used;
+
+  const parts: string[] = [];
+  parts.push(
+    `This case concerns a reported ${c.fraud_scenario.replace(/_/g, " ").toLowerCase()} cyber-fraud of ${formatINR(c.reported_amount)} originating from ${c.origin_metro}, filed ${formatDateShort(c.complaint_time)}.`
+  );
+  if (ledger && ledger.count > 0) {
+    parts.push(
+      `The recorded ledger contains ${ledger.count} transaction${ledger.count !== 1 ? "s" : ""} totalling ${formatINR(ledger.volume)} across ${ledger.accountCount} account${ledger.accountCount !== 1 ? "s" : ""}${ledger.periodFrom && ledger.periodTo ? `, observed between ${formatDateShort(ledger.periodFrom)} and ${formatDateShort(ledger.periodTo)}` : ""}.`
+    );
+    if (ledger.afterAnalysis > 0) {
+      parts.push(
+        `${ledger.afterAnalysis} ledger record${ledger.afterAnalysis !== 1 ? "s" : ""} ${ledger.afterAnalysis === 1 ? "is" : "are"} timestamped after the analysis point and ${ledger.afterAnalysis === 1 ? "was" : "were"} not used as ranking evidence.`
+      );
+    }
+  }
+  if (top) {
+    parts.push(
+      `SENTINEL prioritizes ${top.location_id} (${top.risk_score.toFixed(3)}) for investigator review based on the available observed evidence and the ${model} ranking model.`
     );
   }
+  parts.push(
+    `All locations in this brief are review priorities derived from observed evidence — not claims about where a cash-out will occur.`
+  );
 
+  return (
+    <div className="report-section">
+      <h2 className="report-section-title">Executive Summary</h2>
+      {parts.map((p, i) => (
+        <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700">
+          {p}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ObservedEvidenceSection({
+  txData,
+}: {
+  txData: CaseTransactionsResponse | null;
+}) {
   if (!txData || txData.transactions.length === 0) {
     return (
       <div className="report-section">
-        <h2 className="report-section-title">
-          Observed Transaction Evidence
-        </h2>
-        <p className="text-sm text-gray-500 italic">
+        <h2 className="report-section-title">Observed Evidence</h2>
+        <p className="text-sm italic text-gray-500">
           No transaction evidence available for this case.
         </p>
       </div>
     );
   }
 
-  const { transactions, accounts } = txData;
-  const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-
-  function getAccountRole(accountId: string): string {
-    const acct = accounts.find((a) => a.account_id === accountId);
-    return acct
-      ? ACCOUNT_ROLE_LABELS[acct.role] || acct.role
-      : "Unknown";
-  }
+  const ledger = summarizeLedger(txData, null);
+  const roleCounts = Object.entries(ledger.byRole).sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="report-section">
-      <h2 className="report-section-title">
-        Observed Transaction Evidence
-      </h2>
-      <p className="text-xs text-gray-500 mb-3 italic">
-        Transaction amounts are observed transfers, not confirmed cash
-        withdrawals. All data is synthetic.
-      </p>
-
-      <div className="report-grid-2 mb-3">
+      <h2 className="report-section-title">Observed Evidence</h2>
+      <div className="report-grid-4 mb-3">
         <div className="report-kv">
-          <span className="report-kv-label">Total Transactions</span>
-          <span className="report-kv-value">{transactions.length}</span>
+          <span className="report-kv-label">Transactions</span>
+          <span className="report-kv-value font-mono">{ledger.count}</span>
         </div>
         <div className="report-kv">
-          <span className="report-kv-label">Total Observed Amount</span>
-          <span className="report-kv-value">{formatINR(totalAmount)}</span>
+          <span className="report-kv-label">Ledger Accounts</span>
+          <span className="report-kv-value font-mono">{ledger.accountCount}</span>
+        </div>
+        <div className="report-kv">
+          <span className="report-kv-label">Observed Volume</span>
+          <span className="report-kv-value font-mono">
+            {formatINR(ledger.volume)}
+          </span>
+        </div>
+        <div className="report-kv">
+          <span className="report-kv-label">Observed Period</span>
+          <span className="report-kv-value font-mono">
+            {ledger.periodFrom && ledger.periodTo
+              ? `${formatDateShort(ledger.periodFrom)} — ${formatDateShort(ledger.periodTo)}`
+              : "—"}
+          </span>
         </div>
       </div>
 
+      <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+        <span>
+          <span className="font-semibold">Record types:</span>{" "}
+          {Object.entries(ledger.byType)
+            .sort((a, b) => b[1] - a[1])
+            .map(([t, n]) => `${t} (${n})`)
+            .join(" · ")}
+        </span>
+        <span>
+          <span className="font-semibold">Account roles:</span>{" "}
+          {roleCounts.map(([r, n]) => `${ACCOUNT_ROLE_LABELS[r] ?? r} (${n})`).join(" · ")}
+        </span>
+      </div>
+      <p className="text-[10px] italic text-gray-500">
+        Transaction amounts are observed transfers, not confirmed cash
+        withdrawals. All data is synthetic.
+      </p>
+    </div>
+  );
+}
+
+function TransactionTrailSection({
+  txData,
+  analysisPoint,
+}: {
+  txData: CaseTransactionsResponse | null;
+  analysisPoint: string;
+}) {
+  if (!txData || txData.transactions.length === 0) return null;
+
+  const ledger = orderedLedger(txData);
+  const roleById = new Map(txData.accounts.map((a) => [a.account_id, a.role]));
+  const roleLabel = (id: string) => {
+    const r = roleById.get(id);
+    return r ? ACCOUNT_ROLE_LABELS[r] ?? r : "—";
+  };
+  const after = ledger.filter((t) => isAfterAnalysisPoint(t, analysisPoint));
+
+  return (
+    <div className="report-section">
+      <h2 className="report-section-title">Transaction Trail</h2>
+      <p className="mb-3 text-xs italic text-gray-500">
+        Condensed evidence chain in recorded order. Metro columns describe
+        observed transaction geography only.
+      </p>
       <div className="overflow-x-auto">
         <table className="report-table">
           <thead>
             <tr>
               <th>#</th>
               <th>Transaction ID</th>
-              <th>Sender</th>
-              <th>Sender Role</th>
-              <th>Receiver</th>
-              <th>Receiver Role</th>
+              <th>Timestamp</th>
+              <th>Sender (Role)</th>
+              <th>Receiver (Role)</th>
               <th className="text-right">Amount</th>
               <th>Type</th>
-              <th>Timestamp</th>
               <th>Metro Flow</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx: TransactionInfo) => (
+            {ledger.map((tx) => (
               <tr key={tx.transaction_id}>
                 <td className="font-mono text-xs">{tx.sequence_number}</td>
-                <td className="font-mono text-xs">
-                  {tx.transaction_id.length > 16
-                    ? tx.transaction_id.slice(0, 16) + "..."
-                    : tx.transaction_id}
-                </td>
-                <td className="font-mono text-xs">
-                  {tx.sender_account_id.replace("ACCT_", "").replace(/_/g, "-")}
-                </td>
-                <td className="text-xs">{getAccountRole(tx.sender_account_id)}</td>
-                <td className="font-mono text-xs">
-                  {tx.receiver_account_id
-                    .replace("ACCT_", "")
-                    .replace(/_/g, "-")}
+                <td className="font-mono text-xs">{tx.transaction_id}</td>
+                <td className="font-mono text-xs text-gray-500">
+                  {formatTimestampFull(tx.timestamp)}
                 </td>
                 <td className="text-xs">
-                  {getAccountRole(tx.receiver_account_id)}
+                  {tx.sender_account_id} ({roleLabel(tx.sender_account_id)})
+                </td>
+                <td className="text-xs">
+                  {tx.receiver_account_id} ({roleLabel(tx.receiver_account_id)})
                 </td>
                 <td className="text-right text-xs font-medium">
                   {formatINR(tx.amount)}
                 </td>
                 <td className="text-xs font-medium">{tx.transaction_type}</td>
-                <td className="text-xs text-gray-500">
-                  {formatDate(tx.timestamp)}
-                </td>
                 <td className="text-xs text-gray-600">
                   {tx.sender_metro && tx.receiver_metro
                     ? tx.sender_metro === tx.receiver_metro
                       ? tx.sender_metro
-                      : `${tx.sender_metro} -> ${tx.receiver_metro}`
+                      : `${tx.sender_metro} → ${tx.receiver_metro}`
                     : "—"}
                 </td>
               </tr>
@@ -267,58 +303,13 @@ function TransactionEvidenceSection({
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function EvidenceSignalsSection({ data }: { data: RankResponse }) {
-  const topCandidate = data.ranked_candidates[0];
-  const hasGroupScores =
-    data.model_used === "weighted_baseline" && topCandidate?.group_scores;
-
-  return (
-    <div className="report-section">
-      <h2 className="report-section-title">Evidence Signal Assessment</h2>
-
-      {hasGroupScores ? (
-        <>
-          <p className="text-xs text-gray-500 mb-3">
-            Per-group score breakdown for the #1 ranked candidate. Weighted
-            Baseline model provides these group-level contributions.
-          </p>
-          <div className="space-y-2">
-            {Object.entries(topCandidate.group_scores!).map(
-              ([group, score]) => {
-                const meta = GROUP_META[group] ?? { label: group };
-                const pct = Math.round(score * 100);
-                return (
-                  <div key={group} className="flex items-center gap-3">
-                    <span className="w-24 text-xs font-medium text-gray-700 shrink-0">
-                      {meta.label}
-                    </span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                      <div
-                        className="h-full rounded-full bg-sentinel-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="w-12 text-right text-xs font-mono text-gray-600 shrink-0">
-                      {score.toFixed(3)}
-                    </span>
-                  </div>
-                );
-              }
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="rounded border border-gray-200 bg-gray-50 p-3">
-          <p className="text-xs text-gray-600">
-            {data.model_used === "random_forest"
-              ? "The Random Forest model does not expose per-group score breakdowns. Evidence signals are shown per-candidate in the ranked list below."
-              : "No group score data available for the top candidate."}
-          </p>
-        </div>
+      {after.length > 0 && (
+        <p className="mt-2 text-[10px] italic text-gray-500">
+          {after.length} record{after.length !== 1 ? "s" : ""} above{" "}
+          {after.length !== 1 ? "are" : "is"} timestamped after the analysis
+          point ({formatTimestampFull(analysisPoint)}) and {after.length === 1 ? "was" : "were"} not used as
+          ranking evidence.
+        </p>
       )}
     </div>
   );
@@ -331,7 +322,6 @@ function GeographicContextSection({
   data: RankResponse;
   txData: CaseTransactionsResponse | null;
 }) {
-  // Candidate metro distribution
   const candidateMetroCounts: Record<string, number> = {};
   for (const c of data.ranked_candidates) {
     if (c.location) {
@@ -340,46 +330,29 @@ function GeographicContextSection({
     }
   }
 
-  // Transaction metro set
-  const txMetros = new Set<string>();
-  if (txData) {
-    for (const tx of txData.transactions) {
-      if (tx.sender_metro) txMetros.add(tx.sender_metro);
-      if (tx.receiver_metro) txMetros.add(tx.receiver_metro);
-    }
-  }
-
-  // Shared metros
-  const sharedMetros = [...txMetros].filter((m) => candidateMetroCounts[m]);
+  const txMetros = txData ? observedMetros(txData.transactions) : [];
+  const sharedMetros = txMetros.filter((m) => candidateMetroCounts[m]);
 
   return (
     <div className="report-section">
       <h2 className="report-section-title">Geographic Context</h2>
 
       <div className="report-grid-2 mb-3">
-        <div>
-          <h3 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-            Complaint Origin
-          </h3>
-          <p className="text-sm font-medium text-gray-900">
-            {data.case.origin_metro}
-          </p>
+        <div className="report-kv">
+          <span className="report-kv-label">Complaint Origin</span>
+          <span className="report-kv-value">{data.case.origin_metro}</span>
         </div>
-        <div>
-          <h3 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-            Transaction Metros Observed
-          </h3>
-          <p className="text-sm text-gray-600">
-            {txMetros.size > 0
-              ? [...txMetros].join(", ")
-              : "No transaction metro data"}
-          </p>
+        <div className="report-kv">
+          <span className="report-kv-label">Observed Transaction Geography</span>
+          <span className="report-kv-value">
+            {txMetros.length > 0 ? txMetros.join(", ") : "No metro data recorded"}
+          </span>
         </div>
       </div>
 
       {Object.keys(candidateMetroCounts).length > 0 && (
         <div className="mb-3">
-          <h3 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-700">
             Candidate Metro Distribution
           </h3>
           <div className="space-y-1">
@@ -387,10 +360,10 @@ function GeographicContextSection({
               .sort((a, b) => b[1] - a[1])
               .map(([metro, count]) => (
                 <div key={metro} className="flex items-center gap-2 text-xs">
-                  <span className="font-medium text-gray-700 w-32 shrink-0">
+                  <span className="w-32 shrink-0 font-medium text-gray-700">
                     {metro}
                   </span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200 print:bg-gray-200">
                     <div
                       className="h-full rounded-full bg-sentinel-400"
                       style={{
@@ -398,7 +371,7 @@ function GeographicContextSection({
                       }}
                     />
                   </div>
-                  <span className="w-6 text-right font-mono text-gray-500 shrink-0">
+                  <span className="w-6 shrink-0 text-right font-mono text-gray-500">
                     {count}
                   </span>
                 </div>
@@ -408,17 +381,13 @@ function GeographicContextSection({
       )}
 
       {sharedMetros.length > 0 && (
-        <div className="rounded border border-emerald-200 bg-emerald-50 p-2">
-          <h3 className="text-xs font-semibold text-emerald-700 mb-1 uppercase tracking-wide">
-            Shared Geographic Context
-          </h3>
-          <p className="text-xs text-emerald-600">
-            Overlapping metros between transaction trail and candidate
-            locations: {sharedMetros.join(", ")}.
+        <div className="rounded border border-emerald-200 bg-emerald-50 p-2 print:border-gray-400 print:bg-white">
+          <p className="text-xs text-emerald-700 print:text-gray-700">
+            Shared metro context: {sharedMetros.join(", ")}.
           </p>
-          <p className="text-[10px] text-emerald-500 mt-1 italic">
-            Shared metros provide geographic context. This does not imply
-            transactions occurred at specific candidate locations.
+          <p className="mt-1 text-[10px] italic text-emerald-600 print:text-gray-600">
+            Shared metro does not imply transactions occurred at a specific
+            candidate location.
           </p>
         </div>
       )}
@@ -426,187 +395,281 @@ function GeographicContextSection({
   );
 }
 
-function RankedCandidatesSection({
+function CandidatePrioritizationSection({
   candidates,
 }: {
   candidates: RankedCandidate[];
 }) {
+  if (candidates.length === 0) {
+    return (
+      <div className="report-section">
+        <h2 className="report-section-title">Candidate Prioritization</h2>
+        <p className="text-sm italic text-gray-500">
+          No ranked candidates available.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="report-section">
-      <h2 className="report-section-title">Forward-Looking Candidate Priorities</h2>
-      <p className="text-xs text-gray-500 mb-3 italic">
-        Ranked by evidence-based priority score. These are forward-looking
-        investigator review priorities, not guaranteed predictions.
+      <h2 className="report-section-title">Candidate Prioritization</h2>
+      <p className="mb-3 text-xs italic text-gray-500">
+        Ranked by evidence-based priority score. These are investigator review
+        priorities, not guaranteed predictions.
       </p>
 
-      <div className="space-y-3">
-        {candidates.map((c, i) => {
-          const priority = getPriorityLabel(c.risk_score);
-          const isFirst = i === 0;
+      <table className="report-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Location</th>
+            <th>Priority</th>
+            <th className="text-right">Score</th>
+            <th>Type / Region / Metro</th>
+          </tr>
+        </thead>
+        <tbody>
+          {candidates.map((c) => {
+            const tier = getPriorityTier(c.risk_score);
+            return (
+              <tr key={c.location_id}>
+                <td className="font-mono text-xs font-semibold">
+                  {String(c.rank).padStart(2, "0")}
+                </td>
+                <td className="font-mono text-xs font-semibold text-gray-900">
+                  {c.location_id}
+                </td>
+                <td className="text-xs font-semibold">{tier}</td>
+                <td className="text-right font-mono text-xs">
+                  {c.risk_score.toFixed(3)}
+                </td>
+                <td className="text-xs text-gray-600">
+                  {c.location
+                    ? `${c.location.location_type.replace(/_/g, " ")} · ${c.location.region} · ${c.location.metro}`
+                    : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
-          return (
-            <div
-              key={c.location_id}
-              className={`report-candidate ${isFirst ? "report-candidate-first" : ""}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      isFirst
-                        ? "bg-sentinel-600 text-white"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {c.rank}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-sm font-semibold text-gray-900">
-                        {c.location_id}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${priority.color} ${priority.bg} ${priority.border}`}
-                      >
-                        {priority.label}
-                      </span>
-                    </div>
-                    {c.location && (
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        {c.location.location_type} — {c.location.region},{" "}
-                        {c.location.metro}
-                      </p>
-                    )}
-                    {c.location && (
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {c.location.latitude.toFixed(4)},{" "}
-                        {c.location.longitude.toFixed(4)} — Density:{" "}
-                        {c.location.density_score.toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-lg font-bold text-gray-900">
-                    {c.risk_score.toFixed(3)}
-                  </div>
-                  <div className="text-[10px] uppercase text-gray-400">
-                    Priority Score
-                  </div>
-                </div>
-              </div>
+      {candidates[0] && (
+        <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+            #1 Ranked — {candidates[0].location_id}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-gray-700">
+            {candidates[0].explanation}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
-              <div className="mt-2 rounded border border-gray-100 bg-gray-50 p-2">
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  {c.explanation}
-                </p>
-              </div>
+function ModelExplanationSection({ data }: { data: RankResponse }) {
+  const model = MODEL_LABELS[data.model_used] ?? data.model_used;
+  const top = data.ranked_candidates[0];
 
-              {c.group_scores && Object.keys(c.group_scores).length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[10px] font-medium uppercase text-gray-400 mb-1">
-                    Feature Group Contribution
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    {Object.entries(c.group_scores).map(([group, score]) => {
-                      const meta = GROUP_META[group] ?? { label: group };
-                      return (
-                        <span key={group} className="text-[10px] text-gray-500">
-                          {meta.label}: {score.toFixed(3)}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+  return (
+    <div className="report-section">
+      <h2 className="report-section-title">Model &amp; Explanation</h2>
+      <div className="report-kv mb-3">
+        <span className="report-kv-label">Ranking Model</span>
+        <span className="report-kv-value">{model}</span>
       </div>
+
+      {data.model_used === "weighted_baseline" && top?.group_scores ? (
+        <>
+          <p className="mb-2 text-xs text-gray-600">
+            Weighted Baseline group scores for the #1 ranked candidate (
+            {top.location_id}). Group scores are raw per-group signal values —
+            they are not contribution percentages.
+          </p>
+          <div className="space-y-2">
+            {Object.entries(top.group_scores)
+              .sort((a, b) => b[1] - a[1])
+              .map(([group, score]) => {
+                const pct = Math.round(score * 100);
+                return (
+                  <div key={group} className="flex items-center gap-3">
+                    <span className="w-28 shrink-0 text-xs font-medium capitalize text-gray-700">
+                      {group}
+                    </span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 print:bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-sentinel-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="w-14 shrink-0 text-right font-mono text-xs text-gray-600">
+                      {score.toFixed(3)}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+          <p className="mt-2 text-[10px] italic text-gray-500">
+            The model&apos;s configured group weights are not exposed by the
+            API and are therefore not shown.
+          </p>
+        </>
+      ) : (
+        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+          <p className="text-xs leading-relaxed text-gray-600">
+            {data.model_used === "random_forest"
+              ? "The Random Forest model does not expose per-group score breakdowns. The available explanation is its supporting-evidence assessment, shown per candidate in the Candidate Prioritization section above. Missing breakdowns are not shown as zero."
+              : "No group score data is available for the top candidate."}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 function InvestigatorFocusSection({
   data,
-  topCandidate,
+  txData,
 }: {
   data: RankResponse;
-  topCandidate: RankedCandidate | null;
+  txData: CaseTransactionsResponse | null;
 }) {
+  const top = data.ranked_candidates[0] ?? null;
+  const second = data.ranked_candidates[1] ?? null;
+  const ledger = txData ? summarizeLedger(txData, null) : null;
+  const txMetros = txData ? observedMetros(txData.transactions) : [];
+
+  let n = 0;
+  const item = (node: React.ReactNode) => {
+    n += 1;
+    return (
+      <li key={n} className="flex items-start gap-2">
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white print:bg-gray-700">
+          {n}
+        </span>
+        <span className="text-sm leading-relaxed text-gray-700">{node}</span>
+      </li>
+    );
+  };
+
   return (
     <div className="report-section">
-      <h2 className="report-section-title">Forward-Looking Candidate Priorities</h2>
-      <p className="text-xs text-gray-500 mb-3 italic">
-        Evidence-supported candidate priorities for investigator review. These
-        locations should be prioritized based on currently available evidence —
-        they are not guaranteed future withdrawal locations.
-      </p>
-
+      <h2 className="report-section-title">Investigator Focus</h2>
       <ol className="space-y-2">
-        {topCandidate && (
-          <li className="flex items-start gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-              1
-            </span>
-            <span className="text-sm text-gray-700">
-              Review the <strong>#1 ranked candidate</strong> at{" "}
-              <span className="font-mono text-xs">
-                {topCandidate.location_id}
-              </span>
-              {topCandidate.location && (
-                <>
-                  {" "}
-                  — {topCandidate.location.region},{" "}
-                  {topCandidate.location.metro}
-                </>
+        {top &&
+          item(
+            <>
+              Review the <strong>#1 prioritized candidate</strong>{" "}
+              <span className="font-mono text-xs">{top.location_id}</span>
+              {top.location && (
+                <> — {top.location.region}, {top.location.metro}</>
               )}
-              . Priority score: {topCandidate.risk_score.toFixed(3)}.
-            </span>
-          </li>
+              . Ranking score {top.risk_score.toFixed(3)}.
+            </>
+          )}
+        {second &&
+          item(
+            <>
+              Compare against the <strong>#2 prioritized candidate</strong>{" "}
+              <span className="font-mono text-xs">{second.location_id}</span>{" "}
+              (score {second.risk_score.toFixed(3)}); adjacent candidates may
+              have close scores.
+            </>
+          )}
+        {ledger && ledger.count > 0 && (
+          <>
+            {item(
+              <>
+                Trace the <strong>transaction trail</strong> —{" "}
+                {ledger.count} transactions across {ledger.accountCount}{" "}
+                accounts, ending {ledger.periodTo ? formatTimestampFull(ledger.periodTo) : "at the last recorded transfer"}.
+              </>
+            )}
+            {item(
+              <>
+                Review the <strong>account role structure</strong> from the
+                recorded ledger roles:{" "}
+                {Object.entries(ledger.byRole)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([r, c]) => `${ACCOUNT_ROLE_LABELS[r] ?? r} ×${c}`)
+                  .join(", ")}
+                .
+              </>
+            )}
+          </>
         )}
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-            {topCandidate ? "2" : "1"}
-          </span>
-          <span className="text-sm text-gray-700">
-            Review the <strong>observed transaction trail</strong> —{" "}
-            {data.case.num_transactions} transactions across{" "}
-            {data.case.num_accounts_involved} accounts.
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sentinel-600 text-[10px] font-bold text-white">
-            {topCandidate ? "3" : "2"}
-          </span>
-          <span className="text-sm text-gray-700">
-            Review the <strong>geographic relationship</strong> between
-            transaction metros and ranked candidate locations for spatial
-            context.
-          </span>
-        </li>
+        {txMetros.length > 0 && (
+          <>
+            {item(
+              <>
+                Cross-check <strong>observed transaction geography</strong> (
+                {txMetros.join(", ")}) against candidate metros — as context
+                only.
+              </>
+            )}
+          </>
+        )}
       </ol>
-
-      <p className="mt-3 text-[10px] text-gray-400 italic">
+      <p className="mt-3 text-[10px] italic text-gray-400">
         These are workflow suggestions for investigator review, not automated
-        actions.
+        actions and not predictions.
       </p>
     </div>
   );
 }
 
-function DisclaimerSection() {
+function MethodologyLimitationsSection({ data }: { data: RankResponse }) {
   return (
     <div className="report-section report-disclaimer">
-      <h2 className="report-section-title">Disclaimer</h2>
-      <p className="text-xs text-gray-600 leading-relaxed">
-        SENTINEL provides evidence-based decision support for investigators.
-        Ranked locations represent candidate priorities derived from available
-        synthetic evidence and do not constitute guaranteed predictions or
-        autonomous law-enforcement decisions. All data in this report is
-        synthetic — for demonstration and evaluation purposes.
+      <h2 className="report-section-title">Methodology &amp; Limitations</h2>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 print:border-gray-400 print:bg-white print:text-gray-700">
+          Synthetic Data
+        </span>
+        <span className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 print:border-gray-400 print:bg-white print:text-gray-700">
+          Decision Support Only
+        </span>
+        <span className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 print:border-gray-400 print:bg-white print:text-gray-700">
+          Relative Prioritization
+        </span>
+      </div>
+
+      <p className="text-xs font-semibold text-gray-800">
+        Relative prioritization based on observed evidence — not a prediction
+        of certainty.
       </p>
-      <p className="text-[10px] text-gray-400 mt-2">
+
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-gray-700">
+        <li>
+          All data in this brief is synthetic, generated for demonstration and
+          evaluation purposes. No live NCRP or bank systems are accessed.
+        </li>
+        <li>
+          Ranked candidates are relative review priorities derived from
+          observed evidence and the {MODEL_LABELS[data.model_used] ?? data.model_used}{" "}
+          model — SENTINEL does not predict exact ATM locations or guarantee a
+          next withdrawal at any location.
+        </li>
+        <li>
+          Shared metro context does not imply transactions occurred at a
+          specific candidate location; the relationship graph records observed
+          transfers and proves no intent, ownership, or cash-out activity.
+        </li>
+        <li>
+          Only evidence at or before the analysis point (
+          {formatTimestampFull(data.case.analysis_point)}) informs the ranking;
+          later ledger records are excluded from ranking inputs.
+        </li>
+        <li>
+          SENTINEL is a decision-support system for investigators. It does not
+          make autonomous law-enforcement decisions.
+        </li>
+      </ul>
+
+      <p className="mt-3 text-[10px] text-gray-400">
         Generated by SENTINEL — Cybercrime Location Intelligence · Problem
         Statement 26184 · Smart India Hackathon 2026
       </p>
@@ -653,23 +716,18 @@ export default function ReportPage() {
     window.print();
   };
 
-  const topCandidate =
-    data && data.ranked_candidates.length > 0
-      ? data.ranked_candidates[0]
-      : null;
-
   if (loading) {
     return (
       <div className="min-h-screen" style={{ background: "var(--background)" }}>
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="space-y-6">
-            <div className="h-20 skeleton" />
-            <div className="h-40 skeleton" />
-            <div className="h-60 skeleton" />
-            <div className="h-40 skeleton" />
+            <div className="skeleton h-20" />
+            <div className="skeleton h-40" />
+            <div className="skeleton h-60" />
+            <div className="skeleton h-40" />
           </div>
           <p className="mt-4 text-center text-xs" style={{ color: "var(--text-muted)" }}>
-            Generating intelligence report...
+            Generating investigator case brief...
           </p>
         </div>
       </div>
@@ -682,7 +740,7 @@ export default function ReportPage() {
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="alert-card alert-high">
             <h2 className="text-lg font-semibold text-red-800">
-              Report Generation Failed
+              Case Brief Unavailable
             </h2>
             <p className="mt-2 text-sm text-red-700">{error}</p>
             <Link
@@ -733,27 +791,31 @@ export default function ReportPage() {
               ← Back to Investigation
             </Link>
             <span className="text-gray-300">|</span>
-            <span className="text-xs text-gray-400">Intelligence Report</span>
+            <span className="text-xs text-gray-400">Investigator Case Brief</span>
           </div>
           <button
             onClick={handlePrint}
-            className="rounded-md bg-sentinel-600 px-4 py-2 text-sm font-medium text-white hover:bg-sentinel-700 transition-colors"
+            className="rounded-md bg-sentinel-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sentinel-700"
           >
             Print / Save as PDF
           </button>
         </div>
       </div>
 
-      {/* Report content */}
+      {/* Brief content */}
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 print:px-0 print:py-0">
-        <ReportHeader caseId={caseId} />
-        <CaseOverviewSection data={data} />
-        <TransactionEvidenceSection txData={txData} txLoading={txLoading} />
-        <EvidenceSignalsSection data={data} />
+        <BriefHeader caseId={caseId} data={data} />
+        <ExecutiveSummarySection data={data} txData={txData} />
+        <ObservedEvidenceSection txData={txData} />
+        <TransactionTrailSection
+          txData={txData}
+          analysisPoint={data.case.analysis_point}
+        />
         <GeographicContextSection data={data} txData={txData} />
-        <RankedCandidatesSection candidates={data.ranked_candidates} />
-        <InvestigatorFocusSection data={data} topCandidate={topCandidate} />
-        <DisclaimerSection />
+        <CandidatePrioritizationSection candidates={data.ranked_candidates} />
+        <ModelExplanationSection data={data} />
+        <InvestigatorFocusSection data={data} txData={txData} />
+        <MethodologyLimitationsSection data={data} />
       </div>
     </div>
   );

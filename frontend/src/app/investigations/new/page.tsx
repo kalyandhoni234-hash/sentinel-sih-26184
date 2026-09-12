@@ -4,27 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatINR, formatDate } from "@/lib/format";
+import { SCENARIO_BADGES } from "@/lib/labels";
 import type { CaseInfo, InvestigationSummary } from "@/types/api";
 
 type MatchState = "idle" | "loading" | "matched" | "none";
-
-const SCENARIO_COLORS: Record<string, string> = {
-  DIRECT_CASHOUT: "badge-red",
-  RAPID_MULE_CHAIN: "badge-blue",
-  MULTI_HOP: "badge-yellow",
-  GEOGRAPHIC_JUMP: "badge-green",
-  DELAYED_CASHOUT: "badge-yellow",
-  URBAN_CLUSTER: "badge-blue",
-  DISPERSED_ACTIVITY: "badge-green",
-};
-
-const EVIDENCE_CATEGORIES = [
-  "Transaction history",
-  "Account activity",
-  "Geographic information",
-  "Temporal information",
-  "Location information",
-];
 
 function readableError(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -32,7 +15,10 @@ function readableError(err: unknown): string {
 }
 
 function scenarioLabel(scenario: string): string {
-  return scenario.replace(/_/g, " ");
+  return scenario
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function parseAmount(raw: string): number | null {
@@ -204,20 +190,19 @@ export default function NewInvestigationPage() {
   }
 
   const inputClass =
-    "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500";
-  const labelClass = "block text-xs font-medium text-gray-500 mb-1";
+    "w-full rounded-md border border-sentinel-border px-3 py-2 text-sm focus:border-sentinel-500 focus:outline-none focus:ring-1 focus:ring-sentinel-500";
+  const labelClass = "block text-xs font-medium text-sentinel-text-muted mb-1";
 
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-xl font-bold text-gray-900">New Investigation</h2>
+        <div className="flex flex-wrap items-center gap-3">            <h2 className="text-xl font-bold text-sentinel-text">New Investigation</h2>
           <span className="badge-red">SYNTHETIC DEMO MODE</span>
         </div>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-sentinel-text-muted">
           Enter the information available from the complaint.
         </p>
-        <p className="mt-2 max-w-2xl text-xs text-gray-400">
+        <p className="mt-2 max-w-2xl text-xs text-sentinel-text-muted">
           All data in this demonstration is synthetic. In a production
           deployment, this information would come from authorized investigation
           systems. No real police, banking, NCRP, or personal data is used.
@@ -268,7 +253,7 @@ export default function NewInvestigationPage() {
 
       {!casesLoading && !casesError && cases.length === 0 && (
         <div className="card">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-sentinel-text-muted">
             No cases available. Generate the synthetic dataset first.
           </p>
         </div>
@@ -277,7 +262,7 @@ export default function NewInvestigationPage() {
       {cases.length > 0 && (
         <>
           <div className="card">
-            <h3 className="font-semibold text-gray-900">
+            <h3 className="font-semibold text-sentinel-text">
               Complaint Information
             </h3>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -328,7 +313,7 @@ export default function NewInvestigationPage() {
                   onChange={(e) => setComplaintTime(e.target.value)}
                   className={inputClass}
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-sentinel-text-muted">
                   Optional — refines matching to cases filed at a similar time.
                 </p>
               </div>
@@ -337,7 +322,7 @@ export default function NewInvestigationPage() {
                   Reported Amount
                 </label>
                 <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-sentinel-text-muted">
                     ₹
                   </span>
                   <input
@@ -377,7 +362,7 @@ export default function NewInvestigationPage() {
 
           {matchState === "loading" && (
             <div className="card">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-sentinel-text-muted">
                 Finding matching synthetic case...
               </p>
             </div>
@@ -385,10 +370,10 @@ export default function NewInvestigationPage() {
 
           {matchState === "none" && (
             <div className="card border-yellow-200 bg-yellow-50">
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-sentinel-text">
                 No compatible synthetic case found
               </h3>
-              <p className="mt-1 text-sm text-gray-700">
+              <p className="mt-1 text-sm text-sentinel-text-secondary">
                 No existing synthetic demonstration case combines the entered
                 fraud scenario and origin metro. SENTINEL does not fabricate
                 cases or evidence.
@@ -406,16 +391,16 @@ export default function NewInvestigationPage() {
             <div className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                  <p className="text-xs font-medium uppercase tracking-wider text-sentinel-text-muted">
                     Synthetic case matched
                   </p>
-                  <h3 className="mt-1 font-mono text-lg font-semibold text-gray-900">
+                  <h3 className="mt-1 font-mono text-lg font-semibold text-sentinel-text">
                     {selected.case_id}
                   </h3>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-sentinel-text-secondary">
                     <span
                       className={
-                        SCENARIO_COLORS[selected.fraud_scenario] || "badge-red"
+                        SCENARIO_BADGES[selected.fraud_scenario] || "badge-red"
                       }
                     >
                       {scenarioLabel(selected.fraud_scenario)}
@@ -428,8 +413,8 @@ export default function NewInvestigationPage() {
               </div>
 
               {matches.length > 1 && (
-                <div className="mt-4 border-t border-gray-100 pt-4">
-                  <p className="text-xs text-gray-400">
+                <div className="mt-4 border-t border-sentinel-border-subtle pt-4">
+                  <p className="text-xs text-sentinel-text-muted">
                     {matches.length} compatible synthetic cases match this
                     profile. Select the closest one to review:
                   </p>
@@ -441,7 +426,7 @@ export default function NewInvestigationPage() {
                         className={`rounded-full border px-3 py-1 font-mono text-xs font-medium transition-colors ${
                           selected.case_id === c.case_id
                             ? "border-sentinel-500 bg-sentinel-50 text-sentinel-700"
-                            : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                            : "border-sentinel-border bg-sentinel-surface text-sentinel-text-secondary hover:bg-sentinel-surface-alt"
                         }`}
                       >
                         {c.case_id}
@@ -451,7 +436,7 @@ export default function NewInvestigationPage() {
                 </div>
               )}
 
-              <p className="mt-4 text-xs text-gray-400">
+              <p className="mt-4 text-xs text-sentinel-text-muted">
                 Matched to an existing synthetic investigation within the
                 canonical synthetic dataset. No transactions, candidate
                 locations, or model features are fabricated for this
@@ -462,12 +447,12 @@ export default function NewInvestigationPage() {
 
           {selected && (
             <div className="card">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+              <p className="text-xs font-medium uppercase tracking-wider text-sentinel-text-muted">
                 Available Evidence
               </p>
 
               {detailLoading && (
-                <div className="py-6 text-center text-sm text-gray-500">
+                <div className="py-6 text-center text-sm text-sentinel-text-muted">
                   Loading case evidence...
                 </div>
               )}
@@ -490,73 +475,82 @@ export default function NewInvestigationPage() {
                 <>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
-                      <p className="text-xs text-gray-400">Synthetic Case</p>
-                      <p className="font-mono text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Synthetic Case</p>
+                      <p className="font-mono text-sm font-medium text-sentinel-text">
                         {detail.case_id}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Fraud Scenario</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Fraud Scenario</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {scenarioLabel(detail.fraud_scenario)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Complaint Origin</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Complaint Origin</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {detail.origin_metro}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Complaint Time</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Complaint Time</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {formatDate(detail.complaint_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Reported Amount</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Reported Amount</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {formatINR(detail.reported_amount)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Accounts Involved</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Accounts Involved</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {detail.num_accounts_involved}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Transactions</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Transactions</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {detail.num_transactions}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Candidate Locations</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-sentinel-text-muted">Candidate Locations</p>
+                      <p className="text-sm font-medium text-sentinel-text">
                         {detail.num_candidates}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs text-gray-400">
-                      Evidence categories available for this case:
+                    <p className="text-xs font-medium text-sentinel-text-secondary">
+                      Evidence available for this case (from the SENTINEL
+                      dataset):
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {EVIDENCE_CATEGORIES.map((cat) => (
-                        <span
-                          key={cat}
-                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"
-                        >
-                          {cat}
-                        </span>
-                      ))}
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-sentinel-text-muted">
+                        · Transaction ledger — {detail.num_transactions} observed
+                        transfer{detail.num_transactions !== 1 ? "s" : ""}
+                      </p>
+                      <p className="text-xs text-sentinel-text-muted">
+                        · Accounts involved — {detail.num_accounts_involved}
+                      </p>
+                      <p className="text-xs text-sentinel-text-muted">
+                        · Candidate locations — {detail.num_candidates} scored
+                        by the ranking model
+                      </p>
                     </div>
+                    <p className="mt-2 text-[10px] text-sentinel-text-muted">
+                      Counts reflect this case&apos;s actual record in the
+                      SENTINEL dataset. The complaint narrative itself is not
+                      part of the MVP data model.
+                    </p>
                   </div>
 
-                  <div className="mt-4 border-t border-gray-100 pt-4">
-                    <p className="max-w-2xl text-xs text-gray-500">
+                  <div className="mt-4 border-t border-sentinel-border-subtle pt-4">
+                    <p className="max-w-2xl text-xs text-sentinel-text-muted">
                       SENTINEL will rank candidate locations using evidence
                       available at complaint time. These rankings represent
                       investigative priorities, not guaranteed predictions —
@@ -579,16 +573,16 @@ export default function NewInvestigationPage() {
           {libraryOpen && (
             <div className="card">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="font-semibold text-sentinel-text">
                   Demo Case Library
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-sentinel-text-muted">
                   Browse all {cases.length} canonical synthetic cases
                 </span>
               </div>
               <label
                 htmlFor="library-search"
-                className="mt-4 block text-xs font-medium text-gray-500 mb-1"
+                className="mt-4 block text-xs font-medium text-sentinel-text-muted mb-1"
               >
                 Search
               </label>
@@ -600,25 +594,25 @@ export default function NewInvestigationPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className={inputClass}
               />
-              <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-gray-200">
-                <table className="min-w-full text-sm">
-                  <thead className="sticky top-0 bg-gray-50">
+              <div className="mt-2 max-h-72 overflow-y-auto overflow-x-auto rounded-md border border-sentinel-border">
+                <table className="min-w-full text-sm" aria-label="Synthetic case library">
+                  <thead className="sticky top-0 bg-sentinel-surface-alt">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-sentinel-text-muted">
                         Case
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-sentinel-text-muted">
                         Scenario
                       </th>
-                      <th className="hidden px-3 py-2 text-left text-xs font-medium text-gray-500 sm:table-cell">
+                      <th className="hidden px-3 py-2 text-left text-xs font-medium text-sentinel-text-muted sm:table-cell">
                         Metro
                       </th>
-                      <th className="hidden px-3 py-2 text-left text-xs font-medium text-gray-500 sm:table-cell">
+                      <th className="hidden px-3 py-2 text-left text-xs font-medium text-sentinel-text-muted sm:table-cell">
                         Amount
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-sentinel-border-subtle">
                     {libraryCases.map((c) => (
                       <tr
                         key={c.case_id}
@@ -626,25 +620,25 @@ export default function NewInvestigationPage() {
                         className={`cursor-pointer transition-colors ${
                           selected?.case_id === c.case_id
                             ? "bg-sentinel-50"
-                            : "hover:bg-gray-50"
+                            : "hover:bg-sentinel-surface-alt"
                         }`}
                       >
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs font-medium text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs font-medium text-sentinel-text">
                           {c.case_id}
                         </td>
                         <td className="px-3 py-2">
                           <span
                             className={
-                              SCENARIO_COLORS[c.fraud_scenario] || "badge-red"
+                              SCENARIO_BADGES[c.fraud_scenario] || "badge-red"
                             }
                           >
                             {scenarioLabel(c.fraud_scenario)}
                           </span>
                         </td>
-                        <td className="hidden whitespace-nowrap px-3 py-2 text-xs text-gray-700 sm:table-cell">
+                        <td className="hidden whitespace-nowrap px-3 py-2 text-xs text-sentinel-text-secondary sm:table-cell">
                           {c.origin_metro}
                         </td>
-                        <td className="hidden whitespace-nowrap px-3 py-2 text-xs text-gray-700 sm:table-cell">
+                        <td className="hidden whitespace-nowrap px-3 py-2 text-xs text-sentinel-text-secondary sm:table-cell">
                           {formatINR(c.reported_amount)}
                         </td>
                       </tr>
@@ -652,7 +646,7 @@ export default function NewInvestigationPage() {
                   </tbody>
                 </table>
                 {libraryCases.length === 0 && (
-                  <div className="py-6 text-center text-xs text-gray-400">
+                  <div className="py-6 text-center text-xs text-sentinel-text-muted">
                     No cases match your search.
                   </div>
                 )}
