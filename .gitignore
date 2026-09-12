@@ -23,9 +23,6 @@ ENV/
 *.swo
 *~
 
-# Freebuff agent workspace (local only, not part of the codebase)
-.freebuff/
-
 # Testing
 .pytest_cache/
 .coverage
