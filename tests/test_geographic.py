@@ -57,9 +57,7 @@ def test_all_metros_represented():
             metros.add(json.loads(line)["metro"])
 
     config = load_config()
-    expected_metros = {
-        m["name"] for m in config["geography"]["metros"]
-    }
+    expected_metros = {m["name"] for m in config["geography"]["metros"]}
     assert metros == expected_metros, f"Expected metros {expected_metros}, got {metros}"
 
 

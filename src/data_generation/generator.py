@@ -75,9 +75,7 @@ def _generate_cases(
     # Tier-weighted origin selection. Falls back to uniform when the config
     # has no tier weights (or the config metros carry no tier field).
     tier_weights = _tier_weights(config)
-    metro_cfg_by_name = {
-        m["name"]: m for m in config.get("geography", {}).get("metros", [])
-    }
+    metro_cfg_by_name = {m["name"]: m for m in config.get("geography", {}).get("metros", [])}
     metro_sampling_weights: list[float] | None = None
     if tier_weights:
         metro_sampling_weights = []
@@ -103,9 +101,7 @@ def _generate_cases(
         # over the whole window (second resolution) instead of separate
         # day/hour/minute draws, so scaling the window does not concentrate
         # all cases in the first N days.
-        complaint_time = datetime(2025, 1, 1) + timedelta(
-            seconds=rng.randint(0, window_seconds - 1)
-        )
+        complaint_time = datetime(2025, 1, 1) + timedelta(seconds=rng.randint(0, window_seconds - 1))
 
         # Origin metro and location (tier-weighted when configured)
         if metro_sampling_weights:
@@ -117,9 +113,7 @@ def _generate_cases(
         # Amount (synthetic distribution): lognormal with a heavy right tail,
         # clipped to the configured [min, max] band.
         if amount_cfg:
-            reported_amount = math.exp(
-                rng.gauss(float(amount_cfg["mu"]), float(amount_cfg["sigma"]))
-            )
+            reported_amount = math.exp(rng.gauss(float(amount_cfg["mu"]), float(amount_cfg["sigma"])))
             reported_amount = min(max(reported_amount, min_amount), max_amount)
         else:
             reported_amount = rng.uniform(min_amount, max_amount)
@@ -258,14 +252,9 @@ def generate_dataset(
 
     # City/state distributions for dataset-scale reporting. Locations carry
     # region (sub-metro) names only; state comes from the geography config.
-    metro_cfg_by_name = {
-        m["name"]: m for m in geo_config.get("metros", [])
-    }
+    metro_cfg_by_name = {m["name"]: m for m in geo_config.get("metros", [])}
     cases_per_city = Counter(case.origin_metro for case in cases)
-    state_of_metro = {
-        name: str(cfg.get("state", "Unknown"))
-        for name, cfg in metro_cfg_by_name.items()
-    }
+    state_of_metro = {name: str(cfg.get("state", "Unknown")) for name, cfg in metro_cfg_by_name.items()}
     cases_per_state = Counter()
     for city, count in cases_per_city.items():
         cases_per_state[state_of_metro.get(city, "Unknown")] += count

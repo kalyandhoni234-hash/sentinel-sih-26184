@@ -127,8 +127,7 @@ def main() -> int:
         if not vals:
             return "n/a"
         return (
-            f"min={min(vals)}  max={max(vals)}  "
-            f"avg={sum(vals) / len(vals):.2f}  median={sorted(vals)[len(vals) // 2]}"
+            f"min={min(vals)}  max={max(vals)}  avg={sum(vals) / len(vals):.2f}  median={sorted(vals)[len(vals) // 2]}"
         )
 
     print("\nDISTRIBUTION (per case)")
@@ -139,9 +138,11 @@ def main() -> int:
     print(fmt_count_table(city_counts, len(cases), top=50))
     print(f"\n  States/UTs ({len(state_counts)}) by case count:")
     print(fmt_count_table(state_counts, len(cases)))
-    print(f"\n  Amounts: min={min(c['reported_amount'] for c in cases):,.0f}  "
-          f"max={max(c['reported_amount'] for c in cases):,.0f}  "
-          f"avg={sum(c['reported_amount'] for c in cases) / len(cases):,.0f} INR (reported)")
+    print(
+        f"\n  Amounts: min={min(c['reported_amount'] for c in cases):,.0f}  "
+        f"max={max(c['reported_amount'] for c in cases):,.0f}  "
+        f"avg={sum(c['reported_amount'] for c in cases) / len(cases):,.0f} INR (reported)"
+    )
 
     # ---------------- Duplicate detection ----------------
     print("\nQUALITY AUDITS")
@@ -159,9 +160,7 @@ def main() -> int:
         print(f"  Duplicate {name:<16} {status}")
 
     # Full-record duplicate check on transactions (exact same content)
-    tx_signatures = {
-        json.dumps(t, sort_keys=True) for t in transactions
-    }
+    tx_signatures = {json.dumps(t, sort_keys=True) for t in transactions}
     full_dupes = len(transactions) - len(tx_signatures)
     status = "OK" if full_dupes == 0 else f"FAIL ({full_dupes})"
     if full_dupes:
@@ -169,7 +168,6 @@ def main() -> int:
     print(f"  Exact duplicate TXs           {status}")
 
     # Referential integrity (candidates/ground truth reference real entities)
-    account_ids = {a["account_id"] for a in accounts}
     account_ids_by_case: dict[str, set[str]] = {}
     for a in accounts:
         account_ids_by_case.setdefault(a["case_id"], set()).add(a["account_id"])
@@ -178,7 +176,8 @@ def main() -> int:
     bad_gt_case = sum(1 for g in ground_truths if g["case_id"] not in cases_by_id)
     bad_gt_loc = sum(1 for g in ground_truths if g["actual_cashout_location_id"] not in loc_by_id)
     bad_tx_acct = sum(
-        1 for t in transactions
+        1
+        for t in transactions
         if t["sender_account_id"] not in account_ids_by_case.get(t["case_id"], ())
         or t["receiver_account_id"] not in account_ids_by_case.get(t["case_id"], ())
     )
@@ -204,10 +203,7 @@ def main() -> int:
     cands_by_case: dict[str, set[str]] = {}
     for c in candidates:
         cands_by_case.setdefault(c["case_id"], set()).add(c["location_id"])
-    true_in_cands = sum(
-        1 for cid, loc_id in gt_by_case.items()
-        if loc_id in cands_by_case.get(cid, set())
-    )
+    true_in_cands = sum(1 for cid, loc_id in gt_by_case.items() if loc_id in cands_by_case.get(cid, set()))
     coverage = true_in_cands / len(ground_truths) * 100 if ground_truths else 0
     print(
         f"  True loc in candidate set     {true_in_cands}/{len(ground_truths)} cases "
@@ -247,13 +243,8 @@ def main() -> int:
         else f"FAIL (overshoot up to {max_overshoot_min:.1f} min exceeds {JITTER_BAND_MIN:.0f} min band)"
     )
     if not overshoot_ok:
-        errors.append(
-            f"Post-analysis-point overshoot exceeds jitter band: {max_overshoot_min:.1f} min"
-        )
-    print(
-        f"  TXs after analysis point      {post_complaint} ledger records "
-        f"(excluded from evidence) {status}"
-    )
+        errors.append(f"Post-analysis-point overshoot exceeds jitter band: {max_overshoot_min:.1f} min")
+    print(f"  TXs after analysis point      {post_complaint} ledger records (excluded from evidence) {status}")
     status = "OK" if post_cashout == 0 else f"FAIL ({post_cashout})"
     if post_cashout:
         errors.append(f"Transactions after cash-out: {post_cashout}")
@@ -277,9 +268,7 @@ def main() -> int:
     print(f"  Ledger vs declared counts     {status}")
 
     # Unused accounts (accounts in the ledger that no transaction touches)
-    used_accounts = {t["sender_account_id"] for t in transactions} | {
-        t["receiver_account_id"] for t in transactions
-    }
+    used_accounts = {t["sender_account_id"] for t in transactions} | {t["receiver_account_id"] for t in transactions}
     unused = sum(1 for a in accounts if a["account_id"] not in used_accounts)
     status = "OK" if unused == 0 else f"FAIL ({unused})"
     if unused:
