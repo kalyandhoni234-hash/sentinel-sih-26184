@@ -89,24 +89,24 @@ SENTINEL uses **synthetic data only** for development and testing. No real NCRP 
 
 ## Geographic Environment
 
-5 synthetic metro areas modeled after Indian cities:
+47 synthetic city metros across 21 Indian states/UTs (dataset v0.2.0), tiered for origin weighting — Tier-1 cities receive the most cases, Tier-3 a meaningful share, so no single city dominates. Coordinates are approximate real city centers used ONLY to give the synthetic world realistic inter-city distances; they are not claims about real crime geography.
 
-- **Delhi NCR** (~28.61°N, 77.21°E) — 10 locations
-- **Mumbai** (~19.08°N, 72.88°E) — 10 locations
-- **Kolkata** (~22.57°N, 88.36°E) — 8 locations
-- **Chennai** (~13.08°N, 80.27°E) — 8 locations
-- **Jaipur** (~26.91°N, 75.79°E) — 8 locations
+**Tier 1** (12 locations each): Delhi NCR, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad
 
-Total: ~44 locations across 10 location types.
+**Tier 2** (8 each): Jaipur, Lucknow, Kanpur, Nagpur, Indore, Bhopal, Patna, Surat, Vadodara, Coimbatore, Kochi, Visakhapatnam, Guwahati, Chandigarh, Ludhiana, Bhubaneswar
+
+**Tier 3** (7 each): Ajmer, Jodhpur, Udaipur, Kota, Amritsar, Varanasi, Agra, Dehradun, Srinagar, Nashik, Rajkot, Raipur, Mysuru, Madurai, Thiruvananthapuram, Vijayawada, Mangaluru, Cuttack, Ranchi, Jamshedpur, Siliguri, Gwalior, Jabalpur
+
+Total: 385 locations across 10 location types.
 
 ## Generation Process
 
 1. Locations generated deterministically from seed
-2. Cases generated with scenario-weighted sampling
-3. Accounts created per case with role assignments
-4. Transaction chains generated with scenario-controlled structure
+2. Cases generated with scenario-weighted sampling and tier-weighted origin-metro sampling; complaint times spread over a 365-day window; amounts drawn from a clipped lognormal distribution
+3. Accounts created per case with role assignments (exactly num_transactions + 1 — every account participates in the chain)
+4. Transaction chains generated with scenario-controlled structure (chain length = case.num_transactions so the ledger matches the declared counts)
 5. Ground truth selected via weighted probability (NOT random.choice)
-6. Candidate sets created with hard negatives
+6. Candidate sets created from observable evidence only (target-independent, multi-anchor selection)
 
 ## Output Files
 

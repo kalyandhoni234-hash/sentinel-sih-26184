@@ -1,43 +1,368 @@
 # SENTINEL Synthetic Data Generation Configuration
 # This file controls the behavior of the synthetic data generator.
 # All parameters are for synthetic data only.
+#
+# Scale note (dataset v0.2.0): the corpus covers 47 synthetic city metros
+# across 21 Indian states/UTs. Case origins are distributed deterministically
+# by tier weight (see geography.origin_tier_weights): Tier-1 cities receive
+# the most cases, Tier-3 cities a meaningful share — no single city dominates.
+# Coordinates are approximate real city centers used ONLY to give the
+# synthetic world realistic inter-city distances. They are NOT claims about
+# real crime geography, and no real-world intelligence fields exist in the
+# generator.
 
 generation:
   random_seed: 42
-  dataset_version: "0.1.0"
-  generator_version: "0.1.0"
+  dataset_version: "0.2.0"
+  generator_version: "0.2.0"
   schema_version: "0.1.0"
-  case_count: 300
+  case_count: 5000
+  # Complaint times are spread deterministically over this window (days).
+  complaint_window_days: 365
 
 geography:
-  # Synthetic metro areas with approximate real coordinates
-  # These are NOT exact representations of Indian cities
+  # Synthetic metro areas. `tier` drives origin weighting; `state` is used
+  # for dataset-level state/region distribution reporting (the Case schema
+  # itself carries only origin_metro — no new case fields were introduced).
+  # Tier-1: 8 metros x 12 locations, Tier-2: 16 x 8, Tier-3: 23 x 7 = 385 locations.
+  origin_tier_weights:
+    tier1: 3.0
+    tier2: 1.6
+    tier3: 1.0
+
   metros:
+    # ---------------- Tier 1 ----------------
     - name: "Delhi NCR"
+      state: "Delhi"
+      tier: 1
       center_lat: 28.6139
       center_lon: 77.2090
       spread_km: 25
-      location_count: 10
+      location_count: 12
     - name: "Mumbai"
+      state: "Maharashtra"
+      tier: 1
       center_lat: 19.0760
       center_lon: 72.8777
-      spread_km: 20
-      location_count: 10
-    - name: "Kolkata"
-      center_lat: 22.5726
-      center_lon: 88.3639
-      spread_km: 18
-      location_count: 8
+      spread_km: 22
+      location_count: 12
+    - name: "Bengaluru"
+      state: "Karnataka"
+      tier: 1
+      center_lat: 12.9716
+      center_lon: 77.5946
+      spread_km: 22
+      location_count: 12
+    - name: "Hyderabad"
+      state: "Telangana"
+      tier: 1
+      center_lat: 17.3850
+      center_lon: 78.4867
+      spread_km: 22
+      location_count: 12
     - name: "Chennai"
+      state: "Tamil Nadu"
+      tier: 1
       center_lat: 13.0827
       center_lon: 80.2707
-      spread_km: 18
-      location_count: 8
+      spread_km: 20
+      location_count: 12
+    - name: "Kolkata"
+      state: "West Bengal"
+      tier: 1
+      center_lat: 22.5726
+      center_lon: 88.3639
+      spread_km: 20
+      location_count: 12
+    - name: "Pune"
+      state: "Maharashtra"
+      tier: 1
+      center_lat: 18.5204
+      center_lon: 73.8567
+      spread_km: 20
+      location_count: 12
+    - name: "Ahmedabad"
+      state: "Gujarat"
+      tier: 1
+      center_lat: 23.0225
+      center_lon: 72.5714
+      spread_km: 20
+      location_count: 12
+    # ---------------- Tier 2 ----------------
     - name: "Jaipur"
+      state: "Rajasthan"
+      tier: 2
       center_lat: 26.9124
       center_lon: 75.7873
       spread_km: 15
       location_count: 8
+    - name: "Lucknow"
+      state: "Uttar Pradesh"
+      tier: 2
+      center_lat: 26.8467
+      center_lon: 80.9462
+      spread_km: 15
+      location_count: 8
+    - name: "Kanpur"
+      state: "Uttar Pradesh"
+      tier: 2
+      center_lat: 26.4499
+      center_lon: 80.3319
+      spread_km: 14
+      location_count: 8
+    - name: "Nagpur"
+      state: "Maharashtra"
+      tier: 2
+      center_lat: 21.1458
+      center_lon: 79.0882
+      spread_km: 14
+      location_count: 8
+    - name: "Indore"
+      state: "Madhya Pradesh"
+      tier: 2
+      center_lat: 22.7196
+      center_lon: 75.8577
+      spread_km: 14
+      location_count: 8
+    - name: "Bhopal"
+      state: "Madhya Pradesh"
+      tier: 2
+      center_lat: 23.2599
+      center_lon: 77.4126
+      spread_km: 14
+      location_count: 8
+    - name: "Patna"
+      state: "Bihar"
+      tier: 2
+      center_lat: 25.5941
+      center_lon: 85.1376
+      spread_km: 14
+      location_count: 8
+    - name: "Surat"
+      state: "Gujarat"
+      tier: 2
+      center_lat: 21.1702
+      center_lon: 72.8311
+      spread_km: 14
+      location_count: 8
+    - name: "Vadodara"
+      state: "Gujarat"
+      tier: 2
+      center_lat: 22.3072
+      center_lon: 73.1812
+      spread_km: 14
+      location_count: 8
+    - name: "Coimbatore"
+      state: "Tamil Nadu"
+      tier: 2
+      center_lat: 11.0168
+      center_lon: 76.9558
+      spread_km: 14
+      location_count: 8
+    - name: "Kochi"
+      state: "Kerala"
+      tier: 2
+      center_lat: 9.9312
+      center_lon: 76.2673
+      spread_km: 14
+      location_count: 8
+    - name: "Visakhapatnam"
+      state: "Andhra Pradesh"
+      tier: 2
+      center_lat: 17.6868
+      center_lon: 83.2185
+      spread_km: 14
+      location_count: 8
+    - name: "Guwahati"
+      state: "Assam"
+      tier: 2
+      center_lat: 26.1445
+      center_lon: 91.7362
+      spread_km: 14
+      location_count: 8
+    - name: "Chandigarh"
+      state: "Chandigarh"
+      tier: 2
+      center_lat: 30.7333
+      center_lon: 76.7794
+      spread_km: 14
+      location_count: 8
+    - name: "Ludhiana"
+      state: "Punjab"
+      tier: 2
+      center_lat: 30.9010
+      center_lon: 75.8573
+      spread_km: 14
+      location_count: 8
+    - name: "Bhubaneswar"
+      state: "Odisha"
+      tier: 2
+      center_lat: 20.2961
+      center_lon: 85.8245
+      spread_km: 14
+      location_count: 8
+    # ---------------- Tier 3 ----------------
+    - name: "Ajmer"
+      state: "Rajasthan"
+      tier: 3
+      center_lat: 26.4499
+      center_lon: 74.6399
+      spread_km: 10
+      location_count: 7
+    - name: "Jodhpur"
+      state: "Rajasthan"
+      tier: 3
+      center_lat: 26.2389
+      center_lon: 73.0243
+      spread_km: 10
+      location_count: 7
+    - name: "Udaipur"
+      state: "Rajasthan"
+      tier: 3
+      center_lat: 24.5854
+      center_lon: 73.7125
+      spread_km: 10
+      location_count: 7
+    - name: "Kota"
+      state: "Rajasthan"
+      tier: 3
+      center_lat: 25.2138
+      center_lon: 75.8648
+      spread_km: 10
+      location_count: 7
+    - name: "Amritsar"
+      state: "Punjab"
+      tier: 3
+      center_lat: 31.6340
+      center_lon: 74.8723
+      spread_km: 10
+      location_count: 7
+    - name: "Varanasi"
+      state: "Uttar Pradesh"
+      tier: 3
+      center_lat: 25.3176
+      center_lon: 82.9739
+      spread_km: 10
+      location_count: 7
+    - name: "Agra"
+      state: "Uttar Pradesh"
+      tier: 3
+      center_lat: 27.1767
+      center_lon: 78.0081
+      spread_km: 10
+      location_count: 7
+    - name: "Dehradun"
+      state: "Uttarakhand"
+      tier: 3
+      center_lat: 30.3165
+      center_lon: 78.0322
+      spread_km: 10
+      location_count: 7
+    - name: "Srinagar"
+      state: "Jammu and Kashmir"
+      tier: 3
+      center_lat: 34.0837
+      center_lon: 74.7973
+      spread_km: 10
+      location_count: 7
+    - name: "Nashik"
+      state: "Maharashtra"
+      tier: 3
+      center_lat: 19.9975
+      center_lon: 73.7898
+      spread_km: 10
+      location_count: 7
+    - name: "Rajkot"
+      state: "Gujarat"
+      tier: 3
+      center_lat: 22.3039
+      center_lon: 70.8022
+      spread_km: 10
+      location_count: 7
+    - name: "Raipur"
+      state: "Chhattisgarh"
+      tier: 3
+      center_lat: 21.2514
+      center_lon: 81.6296
+      spread_km: 10
+      location_count: 7
+    - name: "Mysuru"
+      state: "Karnataka"
+      tier: 3
+      center_lat: 12.2958
+      center_lon: 76.6394
+      spread_km: 10
+      location_count: 7
+    - name: "Madurai"
+      state: "Tamil Nadu"
+      tier: 3
+      center_lat: 9.9252
+      center_lon: 78.1198
+      spread_km: 10
+      location_count: 7
+    - name: "Thiruvananthapuram"
+      state: "Kerala"
+      tier: 3
+      center_lat: 8.5241
+      center_lon: 76.9366
+      spread_km: 10
+      location_count: 7
+    - name: "Vijayawada"
+      state: "Andhra Pradesh"
+      tier: 3
+      center_lat: 16.5062
+      center_lon: 80.6480
+      spread_km: 10
+      location_count: 7
+    - name: "Mangaluru"
+      state: "Karnataka"
+      tier: 3
+      center_lat: 12.9141
+      center_lon: 74.8560
+      spread_km: 10
+      location_count: 7
+    - name: "Cuttack"
+      state: "Odisha"
+      tier: 3
+      center_lat: 20.4625
+      center_lon: 85.8830
+      spread_km: 10
+      location_count: 7
+    - name: "Ranchi"
+      state: "Jharkhand"
+      tier: 3
+      center_lat: 23.3441
+      center_lon: 85.3096
+      spread_km: 10
+      location_count: 7
+    - name: "Jamshedpur"
+      state: "Jharkhand"
+      tier: 3
+      center_lat: 22.8046
+      center_lon: 86.2029
+      spread_km: 10
+      location_count: 7
+    - name: "Siliguri"
+      state: "West Bengal"
+      tier: 3
+      center_lat: 26.7271
+      center_lon: 88.3953
+      spread_km: 10
+      location_count: 7
+    - name: "Gwalior"
+      state: "Madhya Pradesh"
+      tier: 3
+      center_lat: 26.2183
+      center_lon: 78.1828
+      spread_km: 10
+      location_count: 7
+    - name: "Jabalpur"
+      state: "Madhya Pradesh"
+      tier: 3
+      center_lat: 23.1815
+      center_lon: 79.9864
+      spread_km: 10
+      location_count: 7
 
   location_types:
     - "ATM"
@@ -62,9 +387,14 @@ scenarios:
     DISPERSED_ACTIVITY: 0.10
 
 transactions:
-  # Amount ranges in INR (synthetic)
+  # Amount ranges in INR (synthetic). Amounts are drawn from a lognormal
+  # distribution (heavy right tail — many mid-size complaints, few very large
+  # ones) and clipped to [min_amount, max_amount].
   min_amount: 2000
   max_amount: 450000
+  amount_lognormal:
+    mu: 10.6   # ln-scale median ~ ₹40,000
+    sigma: 1.05
   # Hop count ranges per scenario
   hop_counts:
     DIRECT_CASHOUT: [1, 2]

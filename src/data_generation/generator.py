@@ -2,13 +2,20 @@
 
 Coordinates all sub-generators to produce a complete synthetic dataset.
 Ensures reproducibility via seeded RNG.
+
+Scale note (dataset v0.2.0): the generator is deterministic under a fixed
+seed. Case origins are distributed across cities using tier weights from the
+config (Tier-1 cities receive the most cases), so no single city dominates
+the corpus.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import math
 import random
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -31,53 +38,92 @@ from .validation import DataValidator
 logger = logging.getLogger(__name__)
 
 
+def _tier_weights(config: dict[str, Any]) -> dict[int, float]:
+    """Resolve origin tier weights from config (default preserves old behaviour).
+
+    Accepts both ``tier1: 3.0`` and ``1: 3.0`` style keys.
+    """
+    raw = config.get("geography", {}).get("origin_tier_weights", {})
+    weights: dict[int, float] = {}
+    for key, weight in raw.items():
+        tier = int(str(key).replace("tier", "").replace("_", ""))
+        if weight > 0:
+            weights[tier] = float(weight)
+    return weights
+
+
 def _generate_cases(
     config: dict[str, Any],
     locations: list,
     rng: random.Random,
 ) -> list[Case]:
-    """Generate synthetic cases."""
+    """Generate synthetic cases with tier-weighted origin distribution."""
     gen_params = config.get("generation", {})
     case_count = gen_params.get("case_count", 80)
     scenario_weights = get_scenario_weights(config)
 
-    # Get metro names from locations
-    metros = sorted({loc.metro for loc in locations})
+    # Build metro index from locations (single pass, reused per case).
+    metro_to_locations: dict[str, list] = {}
+    for loc in locations:
+        metro_to_locations.setdefault(loc.metro, []).append(loc)
 
+    metros = sorted(metro_to_locations.keys())
     cases = []
     scenarios = list(scenario_weights.keys())
     weights = list(scenario_weights.values())
+
+    # Tier-weighted origin selection. Falls back to uniform when the config
+    # has no tier weights (or the config metros carry no tier field).
+    tier_weights = _tier_weights(config)
+    metro_cfg_by_name = {
+        m["name"]: m for m in config.get("geography", {}).get("metros", [])
+    }
+    metro_sampling_weights: list[float] | None = None
+    if tier_weights:
+        metro_sampling_weights = []
+        for name in metros:
+            tier = int(metro_cfg_by_name.get(name, {}).get("tier", 3))
+            metro_sampling_weights.append(tier_weights.get(tier, 1.0))
+
+    # Deterministic complaint-time window (default preserves old behaviour).
+    window_days = int(gen_params.get("complaint_window_days", 180))
+    window_seconds = window_days * 24 * 3600
+
+    # Lognormal amount distribution (falls back to uniform when absent).
+    amount_cfg = config.get("transactions", {}).get("amount_lognormal", {})
+    min_amount = config.get("transactions", {}).get("min_amount", 2000)
+    max_amount = config.get("transactions", {}).get("max_amount", 450000)
 
     for i in range(case_count):
         case_id = f"CASE_{i + 1:04d}"
         scenario = rng.choices(scenarios, weights=weights, k=1)[0]
         behavior = get_scenario_behavior(scenario)
 
-        # Random complaint time within a synthetic window
-        base_time = datetime(2025, 1, 1)
-        complaint_offset = timedelta(days=rng.randint(0, 180))
-        complaint_time = (
-            base_time
-            + complaint_offset
-            + timedelta(
-                hours=rng.randint(0, 23),
-                minutes=rng.randint(0, 59),
+        # Random complaint time within a synthetic window. One uniform draw
+        # over the whole window (second resolution) instead of separate
+        # day/hour/minute draws, so scaling the window does not concentrate
+        # all cases in the first N days.
+        complaint_time = datetime(2025, 1, 1) + timedelta(
+            seconds=rng.randint(0, window_seconds - 1)
+        )
+
+        # Origin metro and location (tier-weighted when configured)
+        if metro_sampling_weights:
+            origin_metro = rng.choices(metros, weights=metro_sampling_weights, k=1)[0]
+        else:
+            origin_metro = rng.choice(metros)
+        origin_loc = rng.choice(metro_to_locations[origin_metro])
+
+        # Amount (synthetic distribution): lognormal with a heavy right tail,
+        # clipped to the configured [min, max] band.
+        if amount_cfg:
+            reported_amount = math.exp(
+                rng.gauss(float(amount_cfg["mu"]), float(amount_cfg["sigma"]))
             )
-        )
-
-        # Origin metro and location
-        origin_metro = rng.choice(metros)
-        metro_locations = [loc for loc in locations if loc.metro == origin_metro]
-        origin_loc = rng.choice(metro_locations)
-
-        # Amount (synthetic distribution)
-        reported_amount = round(
-            rng.uniform(
-                config.get("transactions", {}).get("min_amount", 2000),
-                config.get("transactions", {}).get("max_amount", 450000),
-            ),
-            2,
-        )
+            reported_amount = min(max(reported_amount, min_amount), max_amount)
+        else:
+            reported_amount = rng.uniform(min_amount, max_amount)
+        reported_amount = round(reported_amount, 2)
 
         # Number of accounts and transactions
         min_hops = behavior.min_hops
@@ -210,6 +256,20 @@ def generate_dataset(
         s = case.fraud_scenario.value
         scenario_dist[s] = scenario_dist.get(s, 0) + 1
 
+    # City/state distributions for dataset-scale reporting. Locations carry
+    # region (sub-metro) names only; state comes from the geography config.
+    metro_cfg_by_name = {
+        m["name"]: m for m in geo_config.get("metros", [])
+    }
+    cases_per_city = Counter(case.origin_metro for case in cases)
+    state_of_metro = {
+        name: str(cfg.get("state", "Unknown"))
+        for name, cfg in metro_cfg_by_name.items()
+    }
+    cases_per_state = Counter()
+    for city, count in cases_per_city.items():
+        cases_per_state[state_of_metro.get(city, "Unknown")] += count
+
     manifest = DatasetManifest(
         dataset_version=gen_params.get("dataset_version", "0.1.0"),
         generator_version=gen_params.get("generator_version", "0.1.0"),
@@ -221,6 +281,8 @@ def generate_dataset(
         total_locations=len(locations),
         total_candidates=len(candidates),
         scenario_distribution=scenario_dist,
+        cases_per_city=dict(sorted(cases_per_city.items())),
+        cases_per_state=dict(sorted(cases_per_state.items())),
     )
 
     # Step 7: Write model-visible data
@@ -288,6 +350,8 @@ def generate_dataset(
         "candidate_count": len(candidates),
         "ground_truth_count": len(ground_truths),
         "scenario_distribution": scenario_dist,
+        "cases_per_city": manifest.cases_per_city,
+        "cases_per_state": manifest.cases_per_state,
         "validation_errors": validation_errors,
         "output_dir": str(output_dir),
     }

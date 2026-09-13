@@ -27,6 +27,13 @@ const FILTERS = [
 /** Number of newest cases (by complaint time) shown by the "Most Recent 25" filter. */
 const RECENT_COUNT = 25;
 
+/**
+ * Maximum table rows rendered at once. The corpus now holds 5,000 cases;
+ * search and filters apply BEFORE this cap, so any case remains reachable —
+ * the cap only prevents multi-thousand-row DOM renders.
+ */
+const DISPLAY_CAP = 200;
+
 function qualifies(
   c: InvestigationSummary,
   filter: (typeof FILTERS)[number]["key"],
@@ -88,6 +95,11 @@ export default function InvestigationsPage() {
       if (sortBy === "num_candidates") return b.num_candidates - a.num_candidates;
       return new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime();
     });
+
+  // Display cap: render only the first rows of the current sort. Search and
+  // filters narrow the set before this cap, so the full corpus remains
+  // reachable — this only prevents multi-thousand-row DOM renders.
+  const visibleRows = filtered.slice(0, DISPLAY_CAP);
 
   if (loading) {
     return (
@@ -195,7 +207,7 @@ export default function InvestigationsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-sentinel-border-subtle">
-            {filtered.map((c) => (
+            {visibleRows.map((c) => (
               <tr key={c.case_id} className="group transition-colors hover:bg-sentinel-surface-alt">
                 <td className="whitespace-nowrap px-4 py-2.5">
                   <Link
@@ -235,6 +247,13 @@ export default function InvestigationsPage() {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > visibleRows.length && (
+        <div className="py-3 text-center text-xs text-sentinel-text-muted">
+          Showing first {visibleRows.length} of {filtered.length} matching cases —
+          refine the search or filters to narrow further.
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div className="py-8 text-center text-sm text-sentinel-text-muted">

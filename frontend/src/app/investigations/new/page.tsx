@@ -9,6 +9,11 @@ import type { CaseInfo, InvestigationSummary } from "@/types/api";
 
 type MatchState = "idle" | "loading" | "matched" | "none";
 
+/** Max rows rendered in the case-library scroll table (search applies first). */
+const LIBRARY_DISPLAY_CAP = 100;
+/** Max match chips rendered for compatible cases (best matches first). */
+const MATCH_CHIP_CAP = 50;
+
 function readableError(err: unknown): string {
   if (err instanceof Error) return err.message;
   return "Unexpected error";
@@ -136,12 +141,17 @@ export default function NewInvestigationPage() {
 
   const libraryCases = useMemo(() => {
     const q = search.toLowerCase();
-    return cases.filter(
-      (c) =>
-        c.case_id.toLowerCase().includes(q) ||
-        c.fraud_scenario.toLowerCase().includes(q) ||
-        c.origin_metro.toLowerCase().includes(q)
-    );
+    // Display cap: the corpus holds 5,000 cases; the search box narrows the
+    // set BEFORE the cap so any case remains reachable, while the scroll
+    // table stays fast.
+    return cases
+      .filter(
+        (c) =>
+          c.case_id.toLowerCase().includes(q) ||
+          c.fraud_scenario.toLowerCase().includes(q) ||
+          c.origin_metro.toLowerCase().includes(q)
+      )
+      .slice(0, LIBRARY_DISPLAY_CAP);
   }, [cases, search]);
 
   function handleFindMatch() {
@@ -415,11 +425,12 @@ export default function NewInvestigationPage() {
               {matches.length > 1 && (
                 <div className="mt-4 border-t border-sentinel-border-subtle pt-4">
                   <p className="text-xs text-sentinel-text-muted">
-                    {matches.length} compatible synthetic cases match this
-                    profile. Select the closest one to review:
+                    {matches.length > MATCH_CHIP_CAP
+                      ? `Top ${MATCH_CHIP_CAP} of ${matches.length} compatible synthetic cases match this profile. Select the closest one to review:`
+                      : `${matches.length} compatible synthetic cases match this profile. Select the closest one to review:`}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {matches.map((c) => (
+                    {matches.slice(0, MATCH_CHIP_CAP).map((c) => (
                       <button
                         key={c.case_id}
                         onClick={() => setSelected(c)}

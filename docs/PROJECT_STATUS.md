@@ -1,11 +1,20 @@
 # SENTINEL Project Status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-13
+
+## Phase 10 — Dataset Scale & Diversity ✅ COMPLETE
+
+- Synthetic geography expanded: 47 city metros across 21 states/UTs (tier-weighted origin sampling)
+- Corpus scaled to 5,000 cases (seed 42, deterministic — byte-identical on regeneration)
+- 365-day complaint window; lognormal (clipped) amount distribution
+- Ledger consistency fix: accounts = num_transactions + 1, no unused tail accounts
+- Canonical dataset loading in DataService + per-case indexes (fast startup and request routing)
+- Dataset audit script (`scripts/dataset_stats.py`): duplicates, leakage, analysis-point boundary — all PASS
 
 ## Phase 1 — Data Foundation ✅ COMPLETE
 
 - Synthetic data schema with Pydantic models
-- Geographic environment generator (5 metros, 44 locations)
+- Geographic environment generator (now 47 metros, 385 locations — see Phase 10)
 - 7 fraud scenario definitions with behavioral parameters
 - Transaction chain generator with internal structure
 - Weighted-probability ground truth generator
@@ -103,13 +112,13 @@ Last updated: 2026-09-07
 
 | Metric | Value |
 |--------|-------|
-| Cases | 300 |
-| Accounts | 1505 |
-| Transactions | 983 |
-| Locations | 44 |
+| Cases | 5,000 (dataset v0.2.0, seed 42) |
+| Accounts | 20,653 |
+| Transactions | 15,653 |
+| Locations | 385 (47 metros, 21 states/UTs) |
 | Features | 47 |
-| Tests | 209 passed, 0 failed, 0 skipped (backend) |
-| Frontend | 4 pages, 2 components (SentinelMap, SentinelMapWrapper) |
+| Tests | 241 tests (backend suite) |
+| Frontend | Next.js app — 9 routes, case workspace with 7 surfaces |
 | Python | 3.12 |
 | ML | scikit-learn 1.9 |
 | API | FastAPI 0.141 |
@@ -214,16 +223,14 @@ The current candidate-generation pipeline operates on **observable pre-predictio
 - When the evidence-metro pool is larger than the candidate-count cap, the implementation uses a **multi-anchor deterministic selection**: the complaint origin plus one representative location per distinct transaction receiver metro, with per-anchor proximity quotas.
 - **Ground truth is never used** during candidate generation or selection, and the true cash-out location is **never force-inserted**.
 
-### Measured Coverage (Current Dataset: 5 metros, 44 locations)
+### Measured Coverage (Current Dataset: 47 metros, 385 locations)
 
-- **Overall cases covered**: 300/300 (100%)
-- **Test cases covered**: 60/60 (100%)
-- **Train cases covered**: 240/240 (100%)
-- **Average candidates per case**: 13.8 (range: 10–18)
+- **True location present in candidate set**: 1,414/5,000 cases (28.3%)
+- **Average candidates per case**: 11.38 (range: 10–18)
 
-### Why Coverage Is 100% on This Dataset
+### Why Coverage Is No Longer Near-100% on This Dataset
 
-The current dataset uses 5 metros with 44 total locations. Most fraud chains (79.3% of cases) involve only 1 metro in their observable evidence. The evidence-metro candidate pool (origin + TX metros) naturally includes the true location's metro in the vast majority of cases. The multi-anchor selection then picks the geographically closest locations within each metro, which typically includes the true location.
+Candidate generation is deliberately target-independent: it never inspects the hidden ground truth. On the v0.1 dataset (5 metros, 44 locations) the evidence-metro pool was small enough that the deterministic multi-anchor selection usually swept in the true location (100% coverage). At 47 metros / 385 locations the same evidence-anchored rules select a genuinely contested candidate set — the true location is present in 27.2% of cases. This is the correct, leakage-free behavior: coverage is an evaluation outcome, not a generator guarantee, and ranking models are evaluated against whatever subset the observable evidence yields.
 
 ### Real-World Coverage Considerations
 

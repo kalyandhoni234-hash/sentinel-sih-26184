@@ -8,9 +8,10 @@
  * recomputed, or invented here.
  *
  * These numbers are OFFLINE EVALUATION RESULTS on the synthetic dataset
- * (seed 42, 240 train / 60 test cases, 47 features). They are not live
- * telemetry and must never be labeled as such. Ground truth exists only in
- * the evaluation harness — the ranking API itself never uses or exposes it.
+ * (dataset v0.2.0: seed 42, 5,000 cases — 4,000 train / 1,000 test, 47
+ * features). They are not live telemetry and must never be labeled as such.
+ * Ground truth exists only in the evaluation harness — the ranking API itself
+ * never uses or exposes it.
  */
 
 import evaluationArtifact from "../../../docs/rf_evaluation.json";

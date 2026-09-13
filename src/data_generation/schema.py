@@ -199,3 +199,9 @@ class DatasetManifest(BaseModel):
     total_locations: int = Field(default=0, description="Total unique locations")
     total_candidates: int = Field(default=0, description="Total candidate entries")
     scenario_distribution: dict[str, int] = Field(default_factory=dict, description="Count of cases per scenario type")
+    cases_per_city: dict[str, int] = Field(
+        default_factory=dict, description="Count of cases per origin city (synthetic metro)"
+    )
+    cases_per_state: dict[str, int] = Field(
+        default_factory=dict, description="Count of cases per state/UT of the origin city"
+    )

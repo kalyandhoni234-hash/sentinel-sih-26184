@@ -42,11 +42,13 @@ def test_locations_are_in_india_bounds():
 
 
 def test_all_metros_represented():
-    """Verify all configured metros have locations."""
+    """Verify every metro configured in configs/default.yaml has locations."""
     result = generate_dataset(seed=42)
 
     import json
     from pathlib import Path
+
+    from src.data_generation.config import load_config
 
     locs_path = Path(result["output_dir"]) / "generated" / "locations.jsonl"
     metros = set()
@@ -54,7 +56,10 @@ def test_all_metros_represented():
         for line in f:
             metros.add(json.loads(line)["metro"])
 
-    expected_metros = {"Delhi NCR", "Mumbai", "Kolkata", "Chennai", "Jaipur"}
+    config = load_config()
+    expected_metros = {
+        m["name"] for m in config["geography"]["metros"]
+    }
     assert metros == expected_metros, f"Expected metros {expected_metros}, got {metros}"
 
 

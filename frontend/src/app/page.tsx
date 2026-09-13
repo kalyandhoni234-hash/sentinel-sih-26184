@@ -5,7 +5,8 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api } from "@/lib/api";
 import { formatINR, formatDate } from "@/lib/format";
-import { getPriorityTier, getPriorityTierClass } from "@/lib/tiers";
+import { getPriorityTier } from "@/lib/tiers";
+import { stratifiedByMetro } from "@/lib/sampling";
 import {
   SCENARIO_LABELS,
   SCENARIO_BADGES,
@@ -13,7 +14,6 @@ import {
 } from "@/lib/labels";
 import { Disclaimer, DISCLAIMER_SCORE_TEXT } from "@/components/Disclaimer";
 import type {
-  HealthResponse,
   InvestigationSummary,
   CaseInfo,
 } from "@/types/api";
@@ -40,12 +40,24 @@ const SentinelMapDashboard = dynamic(
 
 type RankingModel = "weighted_baseline" | "random_forest";
 
+/** Corpus totals render from these directly — never hardcode. */
+const SAMPLE_SIZE = 24;
+/** Bounded map budget: 12 sampled case origins + ≤10 candidates each. */
+const MAP_CASES = 12;
+const MAP_TOP_K = 10;
+const RECENT_COUNT = 10;
+
 /**
  * Homepage — case-set overview.
  *
  * Data sources, all authoritative:
- *  - GET /investigations (single call, on mount)
- *  - POST /rank for the 8 most recent cases (once cases load)
+ *  - GET /investigations (single call on mount) — corpus totals, sampling pool
+ *  - POST /rank for a deterministic, geography-stratified sample of
+ *    SAMPLE_SIZE cases (one case per metro first, then deterministic fill) —
+ *    the ONLY source of priority-tier information, which is explicitly
+ *    presented as a sampled metric, never a corpus total
+ *  - POST /rank for MAP_CASES metro-spread cases (top MAP_TOP_K candidates
+ *    each) for the map preview — bounded markers, one case per metro first
  *
  * System status comes from the shared session-cached useHealth hook used by
  * the shell — no duplicate /health call.
@@ -56,6 +68,7 @@ export default function HomePage() {
   const [casesLoading, setCasesLoading] = useState(true);
   const [dashboardModel, setDashboardModel] = useState<RankingModel>("weighted_baseline");
   const [mapCandidates, setMapCandidates] = useState<DashboardCandidate[]>([]);
+  const [sampledCandidates, setSampledCandidates] = useState<DashboardCandidate[]>([]);
   const [mapOrigins, setMapOrigins] = useState<
     Pick<CaseInfo, "case_id" | "origin_metro" | "origin_latitude" | "origin_longitude">[]
   >([]);
@@ -67,17 +80,43 @@ export default function HomePage() {
       .catch((err) => { setCasesError(err.message); setCasesLoading(false); });
   }, []);
 
-  // Rank only the 8 most recent cases for the map preview.
+  // Deterministic ordering — the stable input to all sampling below.
+  const orderedCases = useMemo(
+    () =>
+      [...cases].sort(
+        (a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime()
+      ),
+    [cases]
+  );
+
+  // Rank a deterministic, geography-stratified sample (one case per metro
+  // first, then deterministic fill) for the priority metrics, and a
+  // metro-spread subset for the map. Identical case selection on every run
+  // for a given corpus. Priority-tier counts are rendered as SAMPLED metrics.
   useEffect(() => {
-    if (cases.length === 0) return;
-    const sorted = [...cases].sort(
-      (a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime()
-    );
-    const recentCases = sorted.slice(0, 8);
+    if (orderedCases.length === 0) return;
+    const prioritySample = stratifiedByMetro(orderedCases, SAMPLE_SIZE, "homepage-priority-sample");
+    const mapCases = stratifiedByMetro(orderedCases, MAP_CASES, "homepage-map-sample");
     setMapLoading(true);
     Promise.allSettled(
-      recentCases.map((c) =>
-        api.rankCandidates(c.case_id, { model: dashboardModel, top_k: 5 }).then((res) => ({ caseId: c.case_id, res }))
+      prioritySample.map((c) =>
+        api.rankCandidates(c.case_id, { model: dashboardModel, top_k: 10 }).then((res) => ({ caseId: c.case_id, res }))
+      )
+    ).then((results) => {
+      const candidates: DashboardCandidate[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          const { caseId, res } = r.value;
+          for (const c of res.ranked_candidates) {
+            candidates.push({ ...c, caseId });
+          }
+        }
+      }
+      setSampledCandidates(candidates);
+    });
+    Promise.allSettled(
+      mapCases.map((c) =>
+        api.rankCandidates(c.case_id, { model: dashboardModel, top_k: MAP_TOP_K }).then((res) => ({ caseId: c.case_id, res }))
       )
     ).then((results) => {
       const candidates: DashboardCandidate[] = [];
@@ -100,7 +139,7 @@ export default function HomePage() {
       setMapOrigins(origins);
       setMapLoading(false);
     });
-  }, [cases, dashboardModel]);
+  }, [orderedCases, dashboardModel]);
 
   const stats = useMemo(() => {
     const totalCandidates = cases.reduce((s, c) => s + c.num_candidates, 0);
@@ -110,22 +149,33 @@ export default function HomePage() {
     return { totalCandidates, metroCount: metros.size, scenarios };
   }, [cases]);
 
+  /** Priority tiers from the SAMPLE only — rendered as sampled metrics. */
   const priorityStats = useMemo(() => {
     let high = 0, medium = 0, low = 0;
-    for (const c of mapCandidates) {
+    for (const c of sampledCandidates) {
       const tier = getPriorityTier(c.risk_score);
       if (tier === "HIGH") high++;
       else if (tier === "MEDIUM") medium++;
       else low++;
     }
-    return { high, medium, low, total: mapCandidates.length };
-  }, [mapCandidates]);
+    return { high, medium, low, total: sampledCandidates.length };
+  }, [sampledCandidates]);
 
-  const recentCases = useMemo(() => {
-    return [...cases]
-      .sort((a, b) => new Date(b.complaint_time).getTime() - new Date(a.complaint_time).getTime())
-      .slice(0, 8);
-  }, [cases]);
+  const recentCases = useMemo(
+    () => orderedCases.slice(0, RECENT_COUNT),
+    [orderedCases]
+  );
+
+  /** Deterministic metro-spread spotlights — one per metro, then fill. */
+  const spotlightCases = useMemo(
+    () => stratifiedByMetro(orderedCases, 8, "homepage-spotlight"),
+    [orderedCases]
+  );
+
+  const mapSampledMetros = useMemo(
+    () => new Set(mapOrigins.map((o) => o.origin_metro)).size,
+    [mapOrigins]
+  );
 
   return (
     <div className="space-y-5 p-3 sm:p-5">
@@ -171,20 +221,44 @@ export default function HomePage() {
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Corpus totals — full synthetic dataset, derived from GET /investigations */}
+        <div className="grid grid-cols-3">
           {[
-            { label: "Cases", value: casesLoading ? "—" : cases.length, sub: "Synthetic dataset" },
-            { label: "Candidates", value: casesLoading ? "—" : stats.totalCandidates, sub: "Ranked locations" },
-            { label: "High Priority", value: priorityStats.total > 0 ? priorityStats.high : "—", sub: "Of 40 sampled · tier ≥ 0.7", accent: "text-red-600 dark:text-red-400" },
-            { label: "Medium", value: priorityStats.total > 0 ? priorityStats.medium : "—", sub: "Of 40 sampled · tier 0.4–0.7", accent: "text-amber-600 dark:text-amber-400" },
-            { label: "Metros", value: casesLoading ? "—" : stats.metroCount, sub: "Coverage areas" },
+            { label: "Cases", value: cases.length, sub: "Synthetic investigations" },
+            { label: "Candidates", value: stats.totalCandidates, sub: "Ranked locations across all cases" },
+            { label: "Metros", value: stats.metroCount, sub: "Origin metros represented" },
           ].map((kpi) => (
-            <div key={kpi.label} className="intel-section flex flex-col items-center py-4">
-              <div className={`intel-metric-value ${kpi.accent || ""}`}>{kpi.value}</div>
+            <div key={kpi.label} className="intel-section flex flex-col items-center py-5">
+              <div className="intel-metric-value text-3xl sm:text-4xl">
+                {casesLoading ? "—" : kpi.value.toLocaleString("en-IN")}
+              </div>
               <div className="intel-metric-label">{kpi.label}</div>
               <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{kpi.sub}</div>
             </div>
           ))}
+        </div>
+        {/* Sampled metrics — bounded deterministic sample, explicitly NOT corpus totals */}
+        <div
+          className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
+        >
+          <p className="text-[10px] uppercase tracking-[0.06em]" style={{ color: "var(--text-muted)" }}>
+            Sampled priority mix — deterministic {SAMPLE_SIZE}-case sample, all metros represented
+          </p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
+              <span style={{ color: "var(--text-muted)" }}>High {priorityStats.total > 0 ? priorityStats.high : "—"} · ≥0.7</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-orange-500" />
+              <span style={{ color: "var(--text-muted)" }}>Medium {priorityStats.total > 0 ? priorityStats.medium : "—"} · 0.4–0.7</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--text-muted)" }} />
+              <span style={{ color: "var(--text-muted)" }}>Low {priorityStats.total > 0 ? priorityStats.low : "—"} · &lt;0.4</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -196,7 +270,9 @@ export default function HomePage() {
             <div>
               <h3 className="section-label">Geographic Intelligence</h3>
               <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Ranked candidates for the 8 most recent investigations
+                {mapOrigins.length > 0
+                  ? `${mapOrigins.length} metro-spread sampled investigations · ${mapSampledMetros} metros shown · top ${MAP_TOP_K} candidates each`
+                  : "Deterministically sampled across the corpus"}
               </p>
             </div>
             {mapLoading && (
@@ -291,6 +367,45 @@ export default function HomePage() {
                     </div>
                   );
                 })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── INVESTIGATOR SPOTLIGHTS — deterministic metro-spread sample ── */}
+      {spotlightCases.length > 0 && (
+        <div className="intel-panel">
+          <div className="intel-section">
+            <h3 className="section-label mb-1">Investigator Spotlights</h3>
+            <p className="mb-3 text-[10px]" style={{ color: "var(--text-muted)" }}>
+              One case per metro, deterministically sampled — a representative sweep of the corpus, not a ranking
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {spotlightCases.map((c) => {
+                const badge = SCENARIO_BADGES[c.fraud_scenario] || "badge-gray";
+                const label = SCENARIO_LABELS[c.fraud_scenario] || c.fraud_scenario.replace(/_/g, " ");
+                return (
+                  <Link
+                    key={c.case_id}
+                    href={`/investigations/${c.case_id}`}
+                    className="rounded-md p-2.5 transition-colors hover:bg-sentinel-surface-alt"
+                    style={{ background: "var(--surface-alt)", border: "1px solid var(--border-subtle)" }}
+                  >
+                    <p className="font-mono text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {c.case_id}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                      {c.origin_metro}
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-between gap-1">
+                      <span className={`badge text-[9px] ${badge}`}>{label}</span>
+                      <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>
+                        {formatINR(c.reported_amount)}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -54,10 +54,11 @@ def generate_accounts_for_case(
     The first account is the victim, the last is the cash-out account,
     and intermediates are mules.
 
-    Always creates max_hops + 1 accounts to ensure enough accounts
-    exist for any transaction chain length within the scenario range.
+    Creates exactly case.num_transactions + 1 accounts — one per chain
+    position — so every account in the ledger actually participates in the
+    transaction chain (no unused tail accounts).
     """
-    num_accounts = scenario_behavior.max_hops + 1
+    num_accounts = max(case.num_transactions, scenario_behavior.min_hops) + 1
     accounts = []
 
     for i in range(num_accounts):
@@ -99,7 +100,10 @@ def generate_transaction_chain(
         Ordered list of Transaction objects.
     """
     transactions = []
-    num_hops = rng.randint(scenario_behavior.min_hops, scenario_behavior.max_hops)
+    # The chain length comes from the case record so the ledger matches the
+    # declared num_transactions exactly (case records drew this value from
+    # the same scenario [min_hops, max_hops] band).
+    num_hops = case.num_transactions
 
     # Ensure we have enough accounts (should always be true now)
     assert len(accounts) >= num_hops + 1, f"Need {num_hops + 1} accounts but only have {len(accounts)}"

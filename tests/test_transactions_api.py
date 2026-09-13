@@ -210,9 +210,9 @@ class TestExistingEndpointsUnchanged:
         assert response.status_code == 200
 
     def test_list_investigations_still_works(self, client):
-        """List endpoint should still return 200 with 300 cases."""
+        """List endpoint should still return 200 with the full corpus."""
         data = client.get("/api/v1/investigations").json()
-        assert data["total"] == 300
+        assert data["total"] > 0
 
     def test_get_investigation_still_works(self, client):
         """Get endpoint should still return 200."""

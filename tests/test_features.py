@@ -428,9 +428,12 @@ class TestCaseLevelSplit:
 
     def test_unique_case_ids(self):
         """Feature matrix should have well-defined case IDs."""
+        from src.data_generation.config import load_config
+
+        expected = load_config().get("generation", {}).get("case_count", 5000)
         matrix, _ = _build_matrix_with_raw_data()
         case_ids = {r["case_id"] for r in matrix}
-        assert len(case_ids) == 300  # all 300 cases present
+        assert len(case_ids) == expected  # all configured cases present
 
     def test_candidate_rows_inherit_case_identity(self):
         """Each candidate row should carry its case_id for split purposes."""

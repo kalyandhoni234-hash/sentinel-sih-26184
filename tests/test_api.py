@@ -72,10 +72,13 @@ class TestListInvestigations:
         assert response.status_code == 200
 
     def test_list_returns_all_cases(self, client):
-        """Should return all 300 cases."""
+        """Should return all configured cases."""
+        from src.data_generation.config import load_config
+
+        expected = load_config().get("generation", {}).get("case_count", 5000)
         data = client.get("/api/v1/investigations").json()
-        assert data["total"] == 300
-        assert len(data["investigations"]) == 300
+        assert data["total"] == expected
+        assert len(data["investigations"]) == expected
 
     def test_list_case_schema(self, client):
         """Each investigation should have required fields."""
